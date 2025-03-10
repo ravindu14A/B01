@@ -1,0 +1,22 @@
+import requests
+from bs4 import BeautifulSoup
+
+
+base_url = "https://gage-data.earthscope.org/archive/gnss/rinex/obs/2025/059/"
+
+
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+
+response = requests.get(base_url, headers=headers)
+if response.status_code == 200:
+    soup = BeautifulSoup(response.text, "html.parser")
+    
+    files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith(".Z")]
+    
+    print("Available GNSS Data Files:")
+    for file in files[:10]: 
+        print(file)
+else:
+    print("Failed to access server. Status Code:", response.status_code)
