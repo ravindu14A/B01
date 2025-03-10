@@ -88,7 +88,7 @@ def convert(x,y,z):
 epsilon = np.sqrt(2.22*10**-16)
 
 def derivative(x,y,x,d_x=0,d_y=0,d_z=0,i=0):#
-    dev = ((convert(x+dx, y+dy, z+dz)[i] - convert(x-dx, y-dy, z-dz)[i])/(2*dx)) / (2*(dx+dy+dz))
+    dev = ((convert(x+dx, y+dy, z+dz)[i] - convert(x-dx, y-dy, z-dz)[i])/ (2*(dx+dy+dz))
     return dev
     
 def jacobian(x, y, z):
