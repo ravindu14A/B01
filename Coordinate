@@ -85,7 +85,7 @@ def convert(x,y,z):
         altitude = delta_z*np.sqrt(1+ (delta_r/delta_z)**2)
     return(lat, long, altitude)
 
-epsilon = np.sqrt(2.22*10**-16)
+epsilon = np.sqrt(10**-10)
 
 def derivative(x,y,x,d_x=0,d_y=0,d_z=0,i=0):#
     dev = ((convert(x+dx, y+dy, z+dz)[i] - convert(x-dx, y-dy, z-dz)[i])/ (2*(dx+dy+dz))
