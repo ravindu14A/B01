@@ -42,3 +42,5 @@ def getDayData(day):
 		# print(covariance_matrices[:5])
 names, coordinates, covariance_matrices = getDayData(366)
 print(covariance_matrices[:3])
+
+#test
