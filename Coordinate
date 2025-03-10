@@ -97,7 +97,7 @@ def jacobian(x, y, z):
     dz = epsilon * np.abs(z)
 
     d_lat_x = derivative(x,y,z,d_x=dx, i=0)
-    d_lat_y = derivative(x,y,z, d_y = dy, i=0)
+    d_lat_y = derivative(x,y,z, d_y=dy, i=0)
     d_lat_z = derivative(x,y,z,d_z=dz, i=0)
     d_long_x =derivative(x,y,z,d_x=dx, i=1)
     d_long_y =derivative(x,y,z,d_y=dy, i=1)
