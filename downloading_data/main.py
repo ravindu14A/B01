@@ -29,7 +29,7 @@ class StationDataProcessor:
         """
 
 
-        '''# Dictionary to store data for each station
+        # Dictionary to store data for each station
         station_data = defaultdict(list)
 
         # Get all files in the input directory
@@ -37,29 +37,49 @@ class StationDataProcessor:
                        os.path.isfile(os.path.join(self.input_directory, f))]
 
         # Process each file
+        station_dict = defaultdict(lambda: defaultdict(lambda: {"X": None, "Y": None, "Z": None}))
+
         for file_name in input_files:
             file_path = os.path.join(self.input_directory, file_name)
             self._process_file(file_path, station_data)
 
-        # Write station data to output files
-        output_files = self._write_station_files(station_data)'''
+            info = _process_file(file_name)
+
+            for key in station_dict():
+                for name, pos in zip((info)[0], info[1]):
+                    if name != key:
+                        station_dict[name][info[2]] = pos
+                    else:
+                        station_dict[name].append[info[2]] = pos
 
 
-    def _process_file(self):
-        input_file = "../data/PFITRF14003.00C"
-
+    def _process_file(self, input_file):
         with open(input_file, "r") as file:
             context = file.readlines()
 
-        match = re.search(r"(\d{2}[A-Z]{3}\d{2})", context[0])
-        date = match.group(1)
+            match = re.search(r"(\d{2}[A-Z]{3}\d{2})", context[0])
+            date = match.group(1)
+            pos = []
+            name = []
+            counter = 0
+            for line in context[1:]:
+                split = line.split()
+                if len(split) > 3:
+                    if split[3] == "X":
+                        X = split[4]
+                    elif split[3] == "Y":
+                        Y = split[4]
+                    elif split[3] == "Z":
+                        Z = split[4]
+                    counter += 1
+                    if counter > 2:
+                        pos.append((X,Y,Z))
+                        name.append(split[1])
+                        counter = 0
+            print(name)
+            print(pos)
 
-        print(match)
-
-        print(context)
-
-        station_dict = defaultdict(lambda: defaultdict(lambda: {"X": None, "Y": None, "Z": None}))
-
+        return name, pos, date
 
     def _parse_line(self, line):
         ...
@@ -87,4 +107,8 @@ class StationDataProcessor:
 
 object = StationDataProcessor(None, None)
 
-object._process_file()
+object.process_files()
+
+
+
+
