@@ -1,0 +1,29 @@
+import os
+import requests
+
+# List of station codes
+station_codes = ["CPNM", "QBNP", "SPK3","NIMT","CUSV","PMBC","KTPH","TOKI","EUSM","KUAL","HUTB","CARI","HAV4","TDMR","UMLH","SAMP","BNON","PBLI","ANMG","JUML","SDKL","LHWA","BTHL","PSMK"] 
+
+
+base_url = "https://geodesy.unr.edu/gps_timeseries/tenv3/IGS14/{}.tenv3"
+
+# Folder to save downloaded files
+stations_scrape = "gps_station_data"
+
+# Create the folder if it doesn't exist
+os.makedirs(stations_scrape, exist_ok=True)
+
+# Loop through each station and download the file
+for station in station_codes:
+    url = base_url.format(station)
+    response = requests.get(url)
+
+    if response.status_code == 200:  # Check if the request was successful
+        file_path = os.path.join(stations_scrape, f"{station}.txt")
+        
+        with open(file_path, "wb") as file:
+            file.write(response.content)
+        
+        print(f"Saved: {file_path}")
+    else:
+        print(f"Failed to download {station}: HTTP {response.status_code}")
