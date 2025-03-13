@@ -2,7 +2,9 @@ import numpy as np
 from scipy.optimize import bisect
 from functools import partial
 
+simple = np.array([[10,10,10],[10,10,10],[10,10,10]])
 def convert(x,y,z):
+    x,y,z = x/1000, y/1000, z/1000
     pos = np.abs(np.array([x,y,z])) #position vector in cartesian
     R = np.sqrt(pos[0]**2 +pos[1]**2) #radial component of position (polar)
     X,Y,Z = pos
@@ -83,41 +85,25 @@ def convert(x,y,z):
 
     elif np.abs(delta_z)>np.abs(delta_r):
         altitude = delta_z*np.sqrt(1+ (delta_r/delta_z)**2)
-    return(lat, long, altitude)
+    return(lat, long, altitude*1000)
 
-epsilon = np.sqrt(2.22*10**-16)
-
-def derivative(x,y,x,d_x=0,d_y=0,d_z=0,i=0):#
-    dev = ((convert(x+dx, y+dy, z+dz)[i] - convert(x-dx, y-dy, z-dz)[i])/ (2*(dx+dy+dz))
-    return dev
-    
-def jacobian(x, y, z):
-    dx = epsilon * np.abs(x)
-    dy = epsilon * np.abs(y)
-    dz = epsilon * np.abs(z)
-
-    d_lat_x = derivative(x,y,z,d_x=dx, i=0)
-    d_lat_y = derivative(x,y,z, d_y=dy, i=0)
-    d_lat_z = derivative(x,y,z,d_z=dz, i=0)
-    d_long_x =derivative(x,y,z,d_x=dx, i=1)
-    d_long_y =derivative(x,y,z,d_y=dy, i=1)
-    d_long_z = derivative(x,y,z,d_z=dz, i=1)
-    d_alt_x = derivative(x,y,z,d_x=dx, i=2)
-    d_alt_y = derivative(x,y,z,d_y=dy, i=2)
-    d_alt_z = derivative(x,y,z,d_z=dz, i=2)
-
-    jacobian = np.array([[d_lat_x, d_lat_y, d_lat_z],
-                   [d_long_x, d_long_y, d_long_z],
-                   [d_alt_x, d_alt_y,d_alt_z]])
+def jacobian(lat, long):
+    jacobian = np.array([[-np.sin(long), np.cos(long), 0],
+                   [-np.sin(lat)*np.cos(long), -np.sin(lat)*np.sin(long), np.cos(lat)],
+                   [np.cos(lat)*np.cos(long), np.cos(lat)*np.sin(long),np.sin(lat)]])
     return jacobian
 
-def error(x, y, z, M):
-    J = jacobian(x, y, z)
+def error(conversion, E=simple):
+    J = jacobian(conversion[0], conversion[1])
     J_T = np.transpose(J)
-    trans_matrix = J @ M @ J_T
-    return trans_matrix
+    trans_matrix = np.array(J @ E @ J_T)
+    east_up = trans_matrix[:2,:2]
+    return east_up
 
-def geodetic(x, y, z, M=simple):
-    conversion = convert(x,y,z)
-    err = error(x,y,z,M)
+def getGeodetic(x, y, z, E=simple):
+    conversion= convert(x,y,z)
+    err = error(conversion,E)
     return conversion, err
+
+
+
