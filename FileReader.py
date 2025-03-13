@@ -41,8 +41,11 @@ def getDayData(filename):
 		useful_lines = []
 		for line in remaining_lines:
 			line=line.split()
-			if (int(line[0]) - 1)//3 == (int(line[1]) - 1)//3: #Check if the correlation is for the same station
-				useful_lines.append(line)
+			try:
+				if (int(line[0]) - 1)//3 == (int(line[1]) - 1)//3: #Check if the correlation is for the same station
+					useful_lines.append(line)
+			except:
+				pass
 		
 
 		for line in useful_lines:
@@ -51,7 +54,7 @@ def getDayData(filename):
 			index_1 = int(line[0])%3 - 1
 			index_2 = int(line[1])%3 - 1
 
-			print(int(line[0]) - 1)
+			#print(int(line[0]) - 1)
 			name_index = index_to_name_index[int(line[0]) - 1] #get the index of the station name (the -1 is because index of datapoint begins at 1,2,3...)
 
 			#important bit 2
@@ -67,8 +70,11 @@ def getDayData(filename):
 
 
 		return coordinates, covariance_matrices, date_obj
-		
-	
+
+
+
 coord, cov, dat = getDayData('PFITRF14284.21C')
 print(cov[4:8])
+print("---------------")
+print(cov[11])
 
