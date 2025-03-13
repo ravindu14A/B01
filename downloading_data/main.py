@@ -46,7 +46,7 @@ class StationDataProcessor:
             info = _process_file(file_name)
 
             for key in station_dict():
-                for name, pos in zip(info)[0:2]:
+                for name, pos in zip((info)[0], info[1]):
                     if name != key:
                         station_dict[name][info[2]] = pos
                     else:
