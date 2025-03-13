@@ -53,6 +53,7 @@ class StationDataProcessor:
 
         match = re.search(r"(\d{2}[A-Z]{3}\d{2})", context[0])
         date = match.group(1)
+
         print(match)
 
         print(context)
