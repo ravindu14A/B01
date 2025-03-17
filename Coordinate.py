@@ -106,4 +106,3 @@ def getGeodetic(x, y, z, E=simple):
     return conversion, err
 
 
-

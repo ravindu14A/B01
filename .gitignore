@@ -1,0 +1,14 @@
+#the data
+data
+
+#example testing data
+PFITRF14*
+
+#output
+output*
+
+#testing file
+test.py
+
+##deprecated stuff
+_depr*
