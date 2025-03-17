@@ -13,12 +13,14 @@ class StationDataProcessor:
             input_directory (str): Path to the directory containing input files
             output_directory (str): Path to the directory where output files will be saved
         """
-        self.input_directory = "..\data"
+        self.input_directory = input_directory
         self.output_directory = output_directory
 
-        '''# Create output directory if it doesn't exist
+        # Create output directory if it doesn't exist
         if not os.path.exists(output_directory):
-            os.makedirs(output_directory)'''
+            os.makedirs(output_directory)
+
+        self.station_dict = defaultdict(lambda: defaultdict(lambda: {"X": None, "Y": None, "Z": None}))
 
     def process_files(self):
         """
@@ -28,16 +30,9 @@ class StationDataProcessor:
             dict: A dictionary with station names as keys and output file paths as values
         """
 
-
-        # Dictionary to store data for each station
-        station_data = defaultdict(list)
-
         # Get all files in the input directory
         input_files = [f for f in os.listdir(self.input_directory) if
                        os.path.isfile(os.path.join(self.input_directory, f))]
-
-        # Process each file
-        station_dict = defaultdict(lambda: defaultdict(lambda: {"X": None, "Y": None, "Z": None}))
 
         for file_name in input_files:
             file_path = os.path.join(self.input_directory, file_name)
@@ -46,15 +41,17 @@ class StationDataProcessor:
 
             for name, pos in zip((info)[0], info[1]):
                 in_dict = False
-                for key in station_dict.keys():
+                for key in self.station_dict.keys():
                     if name == key:
                         in_dict = True
                 if in_dict:
-                    station_dict[name][info[2]] = pos
+                    self.station_dict[name][info[2]] = pos
                 else:
-                    station_dict[name] = {}
-                    station_dict[name][info[2]] = pos
-        return station_dict
+                    self.station_dict[name] = {}
+                    self.station_dict[name][info[2]] = pos
+
+
+        self._write_station_files(self.station_dict)
 
 
 
@@ -84,15 +81,16 @@ class StationDataProcessor:
 
         return name, pos, date
 
-    def _parse_line(self, line):
-        ...
-
     def _write_station_files(self, station_data):
-        '''
-            Example:
-                station_data = {'UHM3': {'2005': [1, 2, 3], '2006': [4, 2, 5]},
-                'USHG': {'2003': [5, 6, 7], '2006': [6, 7, 8]},}
-        '''
+        """
+        Saves station data as pickle files instead of CSV.
+
+        Example:
+            station_data = {
+                'UHM3': {'2005': [1, 2, 3], '2006': [4, 2, 5]},
+                'USHG': {'2003': [5, 6, 7], '2006': [6, 7, 8]},
+            }
+        """
 
         for station, data in station_data.items():
             # Convert dictionary to DataFrame
@@ -100,15 +98,18 @@ class StationDataProcessor:
             df.index.name = "Date"  # Set index name
             df.reset_index(inplace=True)  # Move date to a column
 
-            # Save DataFrame as CSV
-            filename = f"{self.output_dir}/{station}.csv"
-            df.to_csv(filename, index=False)
+            # Ensure the output directory exists
+            os.makedirs(self.output_directory, exist_ok=True)
+
+            # Save DataFrame as a pickle file
+            filename = os.path.join(self.output_directory, f"{station}.pkl")
+            df.to_pickle(filename)
+
             print(f"Saved: {filename}")
 
 
 
-
-object = StationDataProcessor(None, None)
+object = StationDataProcessor(r"..\..\data", r"..\processed_data\SE_Asia")
 
 object.process_files()
 
