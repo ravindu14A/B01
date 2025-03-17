@@ -41,13 +41,12 @@ class StationDataProcessor:
 
         for file_name in input_files:
             file_path = os.path.join(self.input_directory, file_name)
-            self._process_file(file_path, station_data)
 
-            info = _process_file(file_name)
+            info = self._process_file(file_path)
 
             for name, pos in zip((info)[0], info[1]):
                 in_dict = False
-                for key in station_dict():
+                for key in station_dict.keys():
                     if name == key:
                         in_dict = True
                 if in_dict:
@@ -55,7 +54,6 @@ class StationDataProcessor:
                 else:
                     station_dict[name] = {}
                     station_dict[name][info[2]] = pos
-
         return station_dict
 
 
@@ -83,8 +81,6 @@ class StationDataProcessor:
                         pos.append((X,Y,Z))
                         name.append(split[1])
                         counter = 0
-            print(name)
-            print(pos)
 
         return name, pos, date
 
