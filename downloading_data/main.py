@@ -13,7 +13,7 @@ class StationDataProcessor:
             input_directory (str): Path to the directory containing input files
             output_directory (str): Path to the directory where output files will be saved
         """
-        self.input_directory = input_directory
+        self.input_directory = "..\data"
         self.output_directory = output_directory
 
         '''# Create output directory if it doesn't exist
