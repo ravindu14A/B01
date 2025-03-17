@@ -45,12 +45,19 @@ class StationDataProcessor:
 
             info = _process_file(file_name)
 
-            for key in station_dict():
-                for name, pos in zip((info)[0], info[1]):
-                    if name != key:
-                        station_dict[name][info[2]] = pos
-                    else:
-                        station_dict[name].append[info[2]] = pos
+            for name, pos in zip((info)[0], info[1]):
+                in_dict = False
+                for key in station_dict():
+                    if name == key:
+                        in_dict = True
+                if in_dict:
+                    station_dict[name][info[2]] = pos
+                else:
+                    station_dict[name] = {}
+                    station_dict[name][info[2]] = pos
+
+        return station_dict
+
 
 
     def _process_file(self, input_file):
