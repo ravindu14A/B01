@@ -2,122 +2,113 @@ import numpy as np
 from scipy.optimize import bisect
 from functools import partial
 
-def convert(x,y,z):
-    pos = np.abs(np.array([x,y,z])) #position vector in cartesian
-    R = np.sqrt(pos[0]**2 +pos[1]**2) #radial component of position (polar)
-    X,Y,Z = pos
+simple = np.array([[10, 10, 10], [10, 10, 10], [10, 10, 10]])
 
-    #Quartic equations
-    def quartic(P0,P1,P3,P4,x):
-        return P0 + P1*x  + P3*x**3 + P4*x**4
 
-    #Model of Earth (WGS84 model)
-    a = 6378.1370 #[m]  
-    b = 6356.752314245 #[m]
+def convert(x, y, z):
+    x, y, z = x / 1000, y / 1000, z / 1000
+    pos = np.abs(np.array([x, y, z]))  # position vector in cartesian
+    R = np.sqrt(pos[0] ** 2 + pos[1] ** 2)  # radial component of position (polar)
+    X, Y, Z = pos
 
-    #Determination of longitude
+    # Quartic equations
+    def quartic(P0, P1, P3, P4, x):
+        return P0 + P1 * x + P3 * x ** 3 + P4 * x ** 4
+
+    # Model of Earth (WGS84 model)
+    a = 6378.1370  # [m]
+    b = 6356.752314245  # [m]
+
+    # Determination of longitude
     if pos[1] <= pos[0]:
-        long = 2*np.arctan(Y/(X+R))
+        long = 2 * np.arctan(Y / (X + R))
 
-    else: 
-        long = 2*np.arctan(X/(Y+R))
+    else:
+        long = 2 * np.arctan(X / (Y + R))
 
-    #Find z and r with bisection method
-    A = a/b
-    U = (a**2-b**2)/b
+    # Find z and r with bisection method
+    A = a / b
+    U = (a ** 2 - b ** 2) / b
 
-    B = b/a
-    V = (a**2-b**2)/a
+    B = b / a
+    V = (a ** 2 - b ** 2) / a
 
-    if Z >= (b/a)**2*R:
+    if Z >= (b / a) ** 2 * R:
         if R == 0 or Z == 0:
-            r,z = (0,b)
-        else: 
+            r, z = (0, b)
+        else:
             P0 = -Z
-            P1 = 2*(A*R-U)
-            P3 = 2*(A*R+U)
+            P1 = 2 * (A * R - U)
+            P3 = 2 * (A * R + U)
             P4 = Z
             P_freeze = partial(quartic, P0, P1, P3, P4)
-            P_root = bisect(P_freeze,0 , 1)
+            P_root = bisect(P_freeze, 0, 1)
 
-            r=a*(1-P_root**2)/(1+P_root**2)
-            z=b*(2*P_root)/(1+P_root**2)
+            r = a * (1 - P_root ** 2) / (1 + P_root ** 2)
+            z = b * (2 * P_root) / (1 + P_root ** 2)
 
-    elif Z < (b/a)**2*R:
-        
+    elif Z < (b / a) ** 2 * R:
+
         P0 = -R
-        P1 = 2*(B*Z+V)
-        P3 = 2*(B*Z-V)
+        P1 = 2 * (B * Z + V)
+        P3 = 2 * (B * Z - V)
         P4 = R
         P_freeze = partial(quartic, P0, P1, P3, P4)
-        P_root = bisect(P_freeze,0 , 1)
-        
-        r=a*(2*P_root)/(1+P_root**2)
-        z=b*(1-P_root**2)/(1+P_root**2)
+        P_root = bisect(P_freeze, 0, 1)
 
-    #Determination of lattitude
-    if z <= (b/a)**2 *r:
-        lat = np.arctan(z/((b/a)**2*r))
+        r = a * (2 * P_root) / (1 + P_root ** 2)
+        z = b * (1 - P_root ** 2) / (1 + P_root ** 2)
+
+    # Determination of lattitude
+    if z <= (b / a) ** 2 * r:
+        lat = np.arctan(z / ((b / a) ** 2 * r))
     else:
-        lat = (np.pi /2) - np.arctan(((b/a)**2*r)/z)
+        lat = (np.pi / 2) - np.arctan(((b / a) ** 2 * r) / z)
 
-    #Correct sign
-    if z<0:
+    # Correct sign
+    if z < 0:
         lat = -lat
 
-    if x<0 and y>0:
-        long += np.pi/2
+    if x < 0 and y > 0:
+        long += np.pi / 2
 
-    if x<0 and y<0:
-        long +=  np.pi
+    if x < 0 and y < 0:
+        long += np.pi
 
-    if x>0 and y<0:
-        long += (3/2)*np.pi
+    if x > 0 and y < 0:
+        long += (3 / 2) * np.pi
 
-    #Geodetic height
-    delta_r = R-r 
-    delta_z = Z-z 
+    # Geodetic height
+    delta_r = R - r
+    delta_z = Z - z
 
-    if np.abs(delta_z)<=np.abs(delta_r):
-        altitude = delta_r*np.sqrt(1+ (delta_z/delta_r)**2)
+    if np.abs(delta_z) <= np.abs(delta_r):
+        altitude = delta_r * np.sqrt(1 + (delta_z / delta_r) ** 2)
 
-    elif np.abs(delta_z)>np.abs(delta_r):
-        altitude = delta_z*np.sqrt(1+ (delta_r/delta_z)**2)
-    return(lat, long, altitude)
+    elif np.abs(delta_z) > np.abs(delta_r):
+        altitude = delta_z * np.sqrt(1 + (delta_r / delta_z) ** 2)
+    return (lat, long, altitude * 1000)
 
-epsilon = np.sqrt(10**-10)
 
-def derivative(x,y,x,d_x=0,d_y=0,d_z=0,i=0):#
-    dev = ((convert(x+dx, y+dy, z+dz)[i] - convert(x-dx, y-dy, z-dz)[i])/ (2*(dx+dy+dz))
-    return dev
-    
-def jacobian(x, y, z):
-    dx = epsilon * np.abs(x)
-    dy = epsilon * np.abs(y)
-    dz = epsilon * np.abs(z)
-
-    d_lat_x = derivative(x,y,z,d_x=dx, i=0)
-    d_lat_y = derivative(x,y,z, d_y=dy, i=0)
-    d_lat_z = derivative(x,y,z,d_z=dz, i=0)
-    d_long_x =derivative(x,y,z,d_x=dx, i=1)
-    d_long_y =derivative(x,y,z,d_y=dy, i=1)
-    d_long_z = derivative(x,y,z,d_z=dz, i=1)
-    d_alt_x = derivative(x,y,z,d_x=dx, i=2)
-    d_alt_y = derivative(x,y,z,d_y=dy, i=2)
-    d_alt_z = derivative(x,y,z,d_z=dz, i=2)
-
-    jacobian = np.array([[d_lat_x, d_lat_y, d_lat_z],
-                   [d_long_x, d_long_y, d_long_z],
-                   [d_alt_x, d_alt_y,d_alt_z]])
+def jacobian(lat, long):
+    jacobian = np.array([[-np.sin(long), np.cos(long), 0],
+                         [-np.sin(lat) * np.cos(long), -np.sin(lat) * np.sin(long), np.cos(lat)],
+                         [np.cos(lat) * np.cos(long), np.cos(lat) * np.sin(long), np.sin(lat)]])
     return jacobian
 
-def error(x, y, z, M):
-    J = jacobian(x, y, z)
+
+def error(conversion, E=simple):
+    J = jacobian(conversion[0], conversion[1])
     J_T = np.transpose(J)
-    trans_matrix = J @ M @ J_T
+    trans_matrix = np.array(J @ E @ J_T)
     return trans_matrix
 
-def geodetic(x, y, z, M=simple):
-    conversion = convert(x,y,z)
-    err = error(x,y,z,M)
+
+def getGeodetic(x, y, z, E=simple):
+    conversion = convert(x, y, z)
+    err = error(conversion, E)
     return conversion, err
+
+
+
+
