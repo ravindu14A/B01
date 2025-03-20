@@ -5,6 +5,7 @@ import re
 import pandas as pd
 import numpy as np
 import Coordinate as geo
+import matplotlib.pyplot as plt
 
 class StationDataProcessor:
     def __init__(self, input_directory, output_directory):
@@ -157,7 +158,10 @@ class StationDataProcessor:
                 [date, values[0][0], values[0][1], values[0][2], values[1]]  # Unpack tuple and keep array
                 for date, values in data.items()
             ], columns=["Date", "lat", "long", "alt", "variance"])
+            df["Date"] = pd.to_datetime(df["Date"], format="%y%b%d")  # 💡 Notice the format change
 
+            # Sort by Date (Earliest → Latest)
+            df = df.sort_values(by="Date").reset_index(drop=True)
             # Save DataFrame as a pickle file
             filename = os.path.join(self.output_directory, f"{station}.pkl")
             df.to_pickle(filename)
@@ -169,15 +173,6 @@ object = StationDataProcessor(r"..\..\data", r"..\processed_data\SE_Asia")
 
 object.process_files()
 
-# Load the DataFrame from the .pkl file
-df = pd.read_pickle("../processed_data/SE_Asia/BABH.pkl")
-
-pd.set_option("display.max_rows", None)   # Show all rows
-pd.set_option("display.max_columns", None)  # Show all columns
-pd.set_option("display.max_colwidth", None)  # Prevent truncation of long values
-
-# Display the DataFrame
-print(df)
 
 
 
