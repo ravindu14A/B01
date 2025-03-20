@@ -2,6 +2,7 @@ import os
 import re
 import pandas as pd
 from FileReader import GetDataFrame
+from Coordinate import getGeodetic
 
 def get_filenames(directory):
 	pattern = re.compile(r'^PFITRF14.*\..*C$')
@@ -34,3 +35,15 @@ def save_pickle_Dataframe(df, name):
 
 def save_csv_Dataframe(df, name):
 	df.to_csv(r'output\\'+name)
+
+
+def convert_geodetic(df):
+	df[["Latitude", "Longitude", "Height"]] = df.apply(
+    lambda row: pd.Series(getGeodetic(row["X"], row["Y"], row["Z"], row["Covariance"])[0]), axis=1
+)
+
+	df["Error"] = df.apply(
+		lambda row: getGeodetic(row["X"], row["Y"], row["Z"], row["Covariance"])[1], axis=1
+	)
+	return df
+	

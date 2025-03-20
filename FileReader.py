@@ -63,10 +63,10 @@ def GetDataFrame(file_path):
 		return df
 	
 
-df = GetDataFrame(r"data\\PFITRF14003.05C")
+# df = GetDataFrame(r"data\\PFITRF14003.05C")
 
 
-print(df)
+# print(df)
 #df = GetDataFrame(r'data\PFITRF14003.08C')
 #print(df["Covariance"].iloc[-1])
 # import Coordinate
