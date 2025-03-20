@@ -61,8 +61,8 @@ combined_outlier_mask = lat_outlier | long_outlier | height_outlier
 
 # ----- Earthquake Event Detection -----
 # Define the window size and the outlier threshold for an event.
-window_size = 30
-event_threshold = 6
+window_size = 150
+event_threshold = 100
 
 # Compute the rolling sum of outliers (convert boolean to int)
 rolling_sum = np.convolve(combined_outlier_mask.astype(int), np.ones(window_size, dtype=int), mode='valid')
@@ -78,13 +78,22 @@ else:
     earthquake_date = None
     print("No earthquake event detected.")
 
-# Create a cleaned DataFrame with non-outlier rows
-df_clean = df[~combined_outlier_mask]
+# ----- Build final removal mask -----
+# In addition to individual outliers, remove all points in the detected earthquake event window.
+final_removal_mask = combined_outlier_mask.copy()
+if earthquake_date is not None:
+    # event_windows[0] is the starting index of the window in the original array.
+    event_start = event_windows[0]
+    event_indices = np.arange(event_start, min(event_start + window_size, len(df)))
+    final_removal_mask[event_indices] = True
+
+# Create a cleaned DataFrame with non-outlier rows and remove earthquake event points
+df_clean = df[~final_removal_mask]
 df_clean.to_pickle("J001_cleaned.pkl")
 print("Cleaned DataFrame saved to J001_cleaned.pkl")
 
 # ----- Plotting -----
-# Create a 3x2 grid:
+# We'll create a 3x2 grid:
 # For Latitude and Longitude: left plots show data with local trend, right plots show residuals.
 # For Height: left plot shows global trend, right plot shows residuals.
 fig, axes = plt.subplots(3, 2, figsize=(14, 18), sharex=True)
