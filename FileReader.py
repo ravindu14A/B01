@@ -46,20 +46,27 @@ def GetDataFrame(file_path):
 			except:
 				break
 			
-			if index1//3 == index1//3:
+			if index1//3 == index2//3:
 				station_index = index1//3
 				
 				cov_matrices[station_index,index1%3,index2%3] = float(line[2]) *  stds[station_index,index1%3] * stds[station_index,index2%3]
 				cov_matrices[station_index,index2%3,index1%3] = cov_matrices[station_index,index1%3,index2%3]
 
-				if cov_matrices[station_index,index1%3,index2%3]==0:
-					raise Exception("wtf???")
+				#if cov_matrices[station_index,index1%3,index2%3]==0:
+				#		raise Exception("wtf???")
 
+			#if cov_matrices[1,0,0] != 1.5384770e-06:
+		#		raise Exception("how")
+				
 		dates = [date_obj]*N_stations
 		df=pd.DataFrame(zip(dates,station_names,positions,cov_matrices),columns=["Date", "Station", "Position", "Covariance"])
 		return df
 	
-	
+
+df = GetDataFrame(r"data\\PFITRF14003.05C")
+
+
+print(df)
 #df = GetDataFrame(r'data\PFITRF14003.08C')
 #print(df["Covariance"].iloc[-1])
 # import Coordinate

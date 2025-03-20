@@ -22,13 +22,15 @@ def generate_Dataframe_vector_xyz(data_directory):
 def convert_to_columns_xyz(df):
 	df_expanded = df['Position'].apply(pd.Series)
 	df_expanded.columns = ['X', 'Y', 'Z']
-	df = df.drop(columns=['arrays']).join(df_expanded)
+	df = df.drop(columns=['Position']).join(df_expanded)
 	return df
 
-
-def save_pickle_Dataframe(df):
-	df.to_pickle('data.pkl')
 	
 
-def save_csv_Dataframe(df):
-	df.to_csv('output.csv')
+
+def save_pickle_Dataframe(df, name):
+	df.to_pickle(r'output\\'+name)
+	
+
+def save_csv_Dataframe(df, name):
+	df.to_csv(r'output\\'+name)
