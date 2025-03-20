@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import List, Dict, Optional
-from datetime import datetime
+import pandas as pd
 
 @dataclass
 class Station:
     """Represents a station with its position and all observations."""
     name: str
     position: List[float]  # [X, Y, Z]
-    file_path: str
+    data: pd.DataFrame
 
 @dataclass
 class GeoDataset:

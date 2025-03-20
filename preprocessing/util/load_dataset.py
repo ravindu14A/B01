@@ -41,7 +41,7 @@ def load_geodataset(stations_dir) -> GeoDataset:
             station = Station(
                 name=station_name,
                 position=station_position,
-                file_path=file_path,
+                data=station_df,
             )
 
             # Add the station to the dataset
@@ -53,7 +53,4 @@ def load_geodataset(stations_dir) -> GeoDataset:
 
     dataset = GeoDataset(samples=samples)
     return dataset
-
-
-print(load_geodataset('..\processed_data\SE_Asia'))
 
