@@ -21,7 +21,6 @@ def GetDataFrame(file_path):
 		stds = np.zeros((N_stations,3))
 		cov_matrices = np.zeros((N_stations,3,3))
 
-		names = []
 		for i in range(N_stations):
 			for j in range(3):
 				line = f.readline()
@@ -37,24 +36,32 @@ def GetDataFrame(file_path):
 					station_names.append(station_name)
 
 
-		for i in range(int((N_stations-1)*N_stations/2)):
+		while True:#for i in range(int((N_stations*3-2)*(N_stations*3-1)/2)):
+			
 			line = f.readline()
 			line = line.split()
-			
-			index1 = int(line[0])-1
-			index2 = int(line[1])-1
+			try: # this alongside the while True is very illegal but fuck it
+				index1 = int(line[0])-1
+				index2 = int(line[1])-1
+			except:
+				break
 			
 			if index1//3 == index1//3:
 				station_index = index1//3
+				
 				cov_matrices[station_index,index1%3,index2%3] = float(line[2]) *  stds[station_index,index1%3] * stds[station_index,index2%3]
 				cov_matrices[station_index,index2%3,index1%3] = cov_matrices[station_index,index1%3,index2%3]
+
+				if cov_matrices[station_index,index1%3,index2%3]==0:
+					raise Exception("wtf???")
+
 		dates = [date_obj]*N_stations
 		df=pd.DataFrame(zip(dates,station_names,positions,cov_matrices),columns=["Date", "Station", "Position", "Covariance"])
 		return df
-df = GetDataFrame('data\PFITRF14003.00C')
-
+	
+	
+#df = GetDataFrame(r'data\PFITRF14003.08C')
+#print(df["Covariance"].iloc[-1])
 # import Coordinate
 # df["Converted Covariance"] = df.apply(lambda row: Coordinate.convert2electricboogaloo(row["Position"], row["Covariance"]), axis=1)
 
-print(df["Covariance"][0])
-print(df[:4])
