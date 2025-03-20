@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-station = "BIN1"
+station = ("CBAS")
 
 # Load the DataFrame from the .pkl file
 df = pd.read_pickle(f"../processed_data/SE_Asia/{station}.pkl")
