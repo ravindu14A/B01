@@ -35,7 +35,7 @@ def load_geodataset(stations_dir) -> GeoDataset:
             station_position = [0.0, 0.0, 0.0]
             if not station_df.empty:
                 first_row = station_df.iloc[0]
-                station_position = [first_row['X'], first_row['Y'], first_row['Z']]
+                station_position = [first_row['lat'], first_row['long'], first_row['alt']]
 
             # Create a new station
             station = Station(

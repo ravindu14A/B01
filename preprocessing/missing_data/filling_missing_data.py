@@ -70,8 +70,8 @@ class MissingDataGNSS:
 
         return processed_data
 
-    def _process_all_directions(self, data, lat_col='X', lon_col='Y',
-                               height_col='Z', method='linear'):
+    def _process_all_directions(self, data, lat_col='lat', lon_col='long',
+                               height_col='alt', method='linear'):
 
 
         # Fill missing dates
