@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 def local_outliers(x, y, num_segments=5, threshold=1):
-     
     outlier_mask = np.zeros_like(y, dtype=bool)
     trend_line = np.zeros_like(y)
     residuals = np.zeros_like(y)
@@ -60,13 +59,32 @@ height_outlier = np.abs(height_residuals - median_height_res) > 3 * scaled_mad_h
 # Combine overall outlier mask: flag a row if any variable is an outlier
 combined_outlier_mask = lat_outlier | long_outlier | height_outlier
 
+# ----- Earthquake Event Detection -----
+# Define the window size and the outlier threshold for an event.
+window_size = 30
+event_threshold = 6
+
+# Compute the rolling sum of outliers (convert boolean to int)
+rolling_sum = np.convolve(combined_outlier_mask.astype(int), np.ones(window_size, dtype=int), mode='valid')
+
+# Find windows where the number of outliers is at least 100
+event_windows = np.where(rolling_sum >= event_threshold)[0]
+if len(event_windows) > 0:
+    # Use the first window found and take the midpoint as the representative index.
+    first_event_index = event_windows[0] + window_size // 2
+    earthquake_date = df['date'].iloc[first_event_index]
+    print("First earthquake event detected at index", first_event_index, "with date", earthquake_date)
+else:
+    earthquake_date = None
+    print("No earthquake event detected.")
+
 # Create a cleaned DataFrame with non-outlier rows
 df_clean = df[~combined_outlier_mask]
 df_clean.to_pickle("J001_cleaned.pkl")
 print("Cleaned DataFrame saved to J001_cleaned.pkl")
 
 # ----- Plotting -----
-# We'll create a 3x2 grid:
+# Create a 3x2 grid:
 # For Latitude and Longitude: left plots show data with local trend, right plots show residuals.
 # For Height: left plot shows global trend, right plot shows residuals.
 fig, axes = plt.subplots(3, 2, figsize=(14, 18), sharex=True)
@@ -121,6 +139,13 @@ axes[2,1].axhline(np.median(height_residuals), color='green', label='Median Resi
 axes[2,1].set_ylabel('Height Residuals')
 axes[2,1].set_title('Height Residuals vs Date')
 axes[2,1].legend()
+
+# If an earthquake event is detected, mark it with a vertical dashed magenta line on all subplots.
+if earthquake_date is not None:
+    for ax in axes.flatten():
+        ax.axvline(earthquake_date, color='magenta', linestyle='--', linewidth=2, label='Earthquake Event')
+    # To avoid duplicate labels in legends, adjust the legend for one subplot.
+    axes[0,0].legend()
 
 plt.tight_layout()
 plt.show()
