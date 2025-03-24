@@ -47,3 +47,25 @@ def convert_geodetic(df):
 	)
 	return df
 	
+
+
+def SavePickleData():
+    df = generate_Dataframe_vector_xyz('data')
+
+    #filtered_sorted_df = df[df['Station'] == "BABH"].sort_values(by="Date")
+
+
+
+    #print(filtered_sorted_df)
+    df = convert_to_columns_xyz(df)
+
+    df = convert_geodetic(df)
+
+    save_pickle_Dataframe(df, r'pickle_geodetic_data_columns_xyz.pkl')
+
+
+def GetSavedData():
+    df = pd.read_pickle(r'output\\pickle_geodetic_data_columns_xyz.pkl')
+
+    #print(df)
+    return df

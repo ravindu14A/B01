@@ -1,5 +1,5 @@
-
-df = main.GetSavedData()
+import DataFrame_genrator
+df = DataFrame_genrator.GetSavedData()
 
 
 import pandas as pd

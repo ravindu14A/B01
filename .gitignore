@@ -13,4 +13,4 @@ test.py
 ##deprecated stuff
 _depr*
 
-_pycache_
+__pycache__
