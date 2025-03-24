@@ -55,7 +55,7 @@ def convert(x, y, z):
         P_root = bisect(P_freeze, 0, 1)
 
         r = a * (2 * P_root) / (1 + P_root ** 2)
-        z = b * (1 - P_root ** 2) / (1 + P_root ** 2)
+        z = b * (1 - P_root ** 2) / (1 + P_root ** 2) * np.sign(z)
 
     # Determination of lattitude
     if z <= (b / a) ** 2 * r:
@@ -64,8 +64,6 @@ def convert(x, y, z):
         lat = (np.pi / 2) - np.arctan(((b / a) ** 2 * r) / z)
 
     # Correct sign
-    if z < 0:
-        lat = -lat
 
     if x < 0 and y > 0:
         long += np.pi / 2
@@ -76,6 +74,8 @@ def convert(x, y, z):
     if x > 0 and y < 0:
         long += (3 / 2) * np.pi
 
+    if long > np.pi:
+        long = -(2*np.pi-long)
     # Geodetic height
     delta_r = R - r
     delta_z = Z - z
@@ -106,6 +106,8 @@ def getGeodetic(x, y, z, E):
     conversion = convert(x, y, z)
     err = error(conversion, E)
     return conversion, err
+
+
 
 
 
