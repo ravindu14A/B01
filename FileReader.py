@@ -59,7 +59,7 @@ def GetDataFrame(file_path):
 		#		raise Exception("how")
 				
 		dates = [date_obj]*N_stations
-		df=pd.DataFrame(zip(dates,station_names,positions,cov_matrices),columns=["Date", "Station", "Position", "Covariance"])
+		df=pd.DataFrame(zip(dates,station_names,positions,cov_matrices),columns=["date", "station", "Position", "covariance xyz"])
 		return df
 	
 
@@ -68,7 +68,7 @@ def GetDataFrame(file_path):
 
 # print(df)
 #df = GetDataFrame(r'data\PFITRF14003.08C')
-#print(df["Covariance"].iloc[-1])
+#print(df["covariance xyz"].iloc[-1])
 # import Coordinate
-# df["Converted Covariance"] = df.apply(lambda row: Coordinate.convert2electricboogaloo(row["Position"], row["Covariance"]), axis=1)
+# df["Converted Covariance"] = df.apply(lambda row: Coordinate.convert2electricboogaloo(row["Position"], row["covariance xyz"]), axis=1)
 
