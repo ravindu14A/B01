@@ -43,10 +43,11 @@ class OutlierDetector:
 
     def _clean_sample(self, sample: Station):
         df = sample.data
-        x = df['date'].map(pd.Timestamp.toordinal).values
+        df.reset_index(inplace=True)
+        x = df['Date'].map(pd.Timestamp.toordinal).values
 
         # Latitute
-        y_lat = df['latitude'].values
+        y_lat = df['lat'].values
         lat_trend, lat_residuals, lat_outlier = self.__local_outliers(x, y_lat, num_segments=5, threshold=3)
 
         # Longitude

@@ -8,15 +8,16 @@ def main():
     dataset = load_geodataset(data_path)
 
     #If u want to use only one sample
-    #dataset = GeoDataset(samples=dataset.samples[:1])
+    dataset = GeoDataset(samples=dataset.samples[:1])
+    print(dataset.samples)
 
     filling_data = MissingDataGNSS(dataset)
     dataset = filling_data.processing_all_files()
 
-    """outlied_detector = OutlierDetector(dataset)
+    outlied_detector = OutlierDetector(dataset)
     dataset = outlied_detector.clean_dataset()
 
-    print(dataset.samples)"""
+    print(dataset.samples)
 
 
 
