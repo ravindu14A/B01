@@ -49,7 +49,7 @@ def plot_station_columns(dataset: GeoDataset, station_name: str, x_col = 'Date',
 
 
 def main():
-    data_path = 'processed_data\SE_Asia'
+    data_path = r'processed_data\new_SE_Asia'
 
     dataset = load_geodataset(data_path)
 
@@ -57,7 +57,7 @@ def main():
     #dataset = GeoDataset(samples=dataset.samples[:1])
     dataset = GeoDataset(samples=dataset.samples)
 
-    plot_station_columns(dataset, station_name='GET2')
+    plot_station_columns(dataset, station_name='BEHR')
 
     filling_data = MissingDataGNSS(dataset)
     dataset = filling_data.processing_all_files()
@@ -65,9 +65,13 @@ def main():
     '''outlied_detector = OutlierDetector(dataset)
     dataset = outlied_detector.clean_dataset()'''
 
+    for sample in dataset.samples:
+        if sample.name == 'BEHR':
+            with open('BEHR_new.pkl', 'wb') as f:
+                pickle.dump(sample, f)
     # Save the data as pickle
     #save_data(dataset)
-    plot_station_columns(dataset, station_name='GET2')
+    plot_station_columns(dataset, station_name='BEHR')
 
 if __name__ == '__main__':
     main()
