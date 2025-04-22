@@ -1,50 +1,107 @@
 import zipfile
-import os
-import cartopy.io.shapereader as shapereader
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+import rasterio
+from io import BytesIO
 import matplotlib.pyplot as plt
+import numpy as np
+from rasterio.windows import Window
+from matplotlib_scalebar.scalebar import ScaleBar
 
-# Path to your zip file
-zip_file_path = r"C:\Users\nicov\Downloads\th_shp.zip"
-extract_folder = r"C:\Users\nicov\Downloads\th_shp"  # Folder to extract the files to
+# ========== USER CONFIGURATION ==========
+# 1. Define your input file path
+ZIP_FILE_PATH = r"C:\Users\nicov\Downloads\au_dem_9_1.zip"  # <<< CHANGE THIS to your actual file path
 
-# Extract files from the zip archive
-with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-    zip_ref.extractall(extract_folder)
+# 2. Set your geographic area of interest (in decimal degrees)
+COORDINATE_BOUNDS = {
+    'min_lon': 106.03,  # Western boundary (West Jakarta)
+    'max_lon': 107.93,  # Eastern boundary (East Jakarta)
+    'min_lat': -6.95,   # Southern boundary (South Jakarta)
+    'max_lat': -5.10    # Northern boundary (North Jakarta/Java Sea coast)
+}
 
-# Path to the extracted shapefile (ensure the filename matches exactly)
-shapefile_path = r"C:\Users\nicov\Downloads\th_shp\th.shp"  # Ensure this points to the correct .shp file
+# 3. Set visualization parameters
+MAX_ALTITUDE = 40  # Maximum elevation to display (meters)
+DPI = 1000          # Figure resolution
 
-# Read the shapefile using Cartopy's shapereader
-shapefile = shapereader.Reader(shapefile_path)
 
-# Create a map using PlateCarree projection
-fig, ax = plt.subplots(figsize=(10, 6), subplot_kw={'projection': ccrs.PlateCarree()})
+# ========================================
 
-# Set extent to zoom in on Bangkok (adjust the bounding box)
-ax.set_extent([100, 101, 13, 14.5], crs=ccrs.PlateCarree())  # Zoom in around Bangkok
+def latlon_to_pixel(lat, lon, transform):
+    """Convert geographic coordinates to pixel coordinates"""
+    col, row = ~transform * (lon, lat)
+    return int(row), int(col)
 
-# Add map features like land, ocean, coastline, and borders
-ax.add_feature(cfeature.LAND, facecolor="lightgray")
-ax.add_feature(cfeature.OCEAN, facecolor="lightblue")
-ax.add_feature(cfeature.COASTLINE, linewidth=0.8)
-ax.add_feature(cfeature.BORDERS, linestyle="--")
 
-# Plot the shapefile geometries on the map
-ax.add_geometries(shapefile.geometries(), ccrs.PlateCarree(), edgecolor='black', facecolor='red', linewidth=1)
+try:
+    with zipfile.ZipFile(ZIP_FILE_PATH, 'r') as z:
+        # Find the .tif file in the zip archive
+        tif_files = [f for f in z.namelist() if f.endswith('.tif')]
+        if not tif_files:
+            raise FileNotFoundError("No .tif file found in the zip archive")
 
-# Add a title to the map
-ax.set_title("Shapefile Data Zoomed into Bangkok", fontsize=14)
+        with z.open(tif_files[0]) as tif_file:
+            with rasterio.open(BytesIO(tif_file.read())) as src:
+                print(f"File opened successfully. CRS: {src.crs}")
 
-from PIL import Image
+                # Convert geographic bounds to pixel coordinates
+                try:
+                    row_min, col_min = latlon_to_pixel(
+                        COORDINATE_BOUNDS['max_lat'],
+                        COORDINATE_BOUNDS['min_lon'],
+                        src.transform)
+                    row_max, col_max = latlon_to_pixel(
+                        COORDINATE_BOUNDS['min_lat'],
+                        COORDINATE_BOUNDS['max_lon'],
+                        src.transform)
+                except KeyError as e:
+                    raise KeyError(f"Missing coordinate bound: {e}. Please check COORDINATE_BOUNDS dictionary")
 
-# Open the TIFF file
-img = Image.open("C:\Users\nicov\Downloads\gebco_2023_sub_ice_n90.0_s0.0_w-90.0_e0.0.tif")
+                # Create window
+                window = Window.from_slices(
+                    (row_min, row_max),
+                    (col_min, col_max)
+                )
 
-# Show the image
-img.show()
+                # Read and process
+                data = src.read(1, window=window)
+                data_clipped = np.clip(data, 0, MAX_ALTITUDE)
 
-# To access pixel data (as an example):
-pixels = img.load()
-print(pixels[0, 0])  # Print the pixel value at position (0, 0)
+                # Calculate approximate meters per pixel
+                lon_length = 111320 * np.cos(np.radians(np.mean([COORDINATE_BOUNDS['min_lat'], COORDINATE_BOUNDS['max_lat']])))
+                lat_length = 110574
+                dx = (src.transform.a * 111320) / lon_length  # meters per pixel in x
+                dy = (src.transform.e * 110574) / lat_length  # meters per pixel in y
+                meters_per_pixel = (dx + dy) / 2
+
+                # Create figure
+                plt.figure(figsize=(12, 8), dpi=DPI)
+                img = plt.imshow(data_clipped, cmap='terrain', vmin=0, vmax=MAX_ALTITUDE,
+                                extent=[COORDINATE_BOUNDS['min_lon'], COORDINATE_BOUNDS['max_lon'],
+                                        COORDINATE_BOUNDS['min_lat'], COORDINATE_BOUNDS['max_lat']])
+
+                # Add colorbar
+                cbar = plt.colorbar(label=f'Elevation (0-{MAX_ALTITUDE}m)')
+                cbar.ax.yaxis.set_label_position('left')
+
+                # Add scale bar (10km)
+                scalebar = ScaleBar(dx=meters_per_pixel, units='m', length_fraction=0.25,
+                                  location='lower right', scale_loc='bottom',
+                                  fixed_value=10000, fixed_units='m',
+                                  frameon=True, color='black')
+                plt.gca().add_artist(scalebar)
+
+                # Format axes
+                plt.title(f"Elevation Map\n"
+                          f"Longitude: {COORDINATE_BOUNDS['min_lon']:.2f}°E to {COORDINATE_BOUNDS['max_lon']:.2f}°E\n"
+                          f"Latitude: {COORDINATE_BOUNDS['min_lat']:.2f}°S to {COORDINATE_BOUNDS['max_lat']:.2f}°S")
+                plt.xlabel("Longitude (degrees East)")
+                plt.ylabel("Latitude (degrees South)")
+                plt.gca().xaxis.set_major_formatter(plt.FormatStrFormatter('%.2f°E'))
+                plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f°S'))
+                plt.xticks(rotation=45)
+                plt.tight_layout()
+                plt.show()
+
+except FileNotFoundError:
+    print(f"Error: File not found at {ZIP_FILE_PATH}")
+except Exception as e:
+    print(f"An error occurred: {str(e)}")
