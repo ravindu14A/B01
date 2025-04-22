@@ -35,19 +35,19 @@ class MissingDataGNSS:
     @staticmethod
     def _fill_missing_dates(data: Station):
 
-        data["Date"] = pd.to_datetime(data["Date"], format="%y%b%d")
+        data["date"] = pd.to_datetime(data["date"], format="%y%b%d")
         # Generate the full date range
         full_date_range = pd.date_range(
-            start=data["Date"].min(),
-            end=data["Date"].max(),
+            start=data["date"].min(),
+            end=data["date"].max(),
             freq='D'
         )
         # Convert to DataFrame
-        full_date_df = pd.DataFrame({"Date": full_date_range})
-        full_date_df["Date"] = pd.to_datetime(full_date_df["Date"])
+        full_date_df = pd.DataFrame({"date": full_date_range})
+        full_date_df["date"] = pd.to_datetime(full_date_df["date"])
 
         # Merge with original data to create a complete time series
-        processed_data = pd.merge(full_date_df, data, on="Date", how="left")
+        processed_data = pd.merge(full_date_df, data, on="date", how="left")
 
         return processed_data
 
@@ -60,8 +60,8 @@ class MissingDataGNSS:
         processed_data = data.copy()
 
         # Set date as index for interpolation
-        if 'Date' in processed_data.columns:
-            processed_data.set_index("Date", inplace=True)
+        if 'date' in processed_data.columns:
+            processed_data.set_index("date", inplace=True)
 
         # Interpolate missing values in each column
         for column in columns:
