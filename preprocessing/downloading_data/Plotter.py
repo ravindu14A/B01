@@ -2,8 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-country = "Thailand"
-station = "BNKK"
+country = "Malaysia"
+station = "ARAU"
 
 
 # Load the DataFrame from the .pkl file

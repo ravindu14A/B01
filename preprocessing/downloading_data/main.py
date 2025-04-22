@@ -181,7 +181,7 @@ directory = f"../processed_data/{country}/Raw_pickle"
 directory_out = f"../processed_data/{country}/Filtered"
 
 
-threshold= 100
+threshold= round(300/7)
 cutoff = pd.Timestamp("2004-01-01 00:00:00")
 
 for filename in os.listdir(directory_out):

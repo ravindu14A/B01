@@ -49,6 +49,12 @@ for filename in os.listdir(directory):
     filename = os.path.join(directory_out, f"mm_{filename}")
     df.to_pickle(filename)
 
+# filepath = os.path.join(directory_out, "ARAU.pkl")
+#
+# with open(filepath, 'rb') as f:
+#     data = pickle.load(f)
+#     df = pd.DataFrame(data)
+
 
 
 
