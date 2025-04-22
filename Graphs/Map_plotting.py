@@ -16,9 +16,6 @@ warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning, module=
 def plot_points(data_point):
     # Return the coordinates along with the magnitude for plotting
     return data_point
-
-# Function to combine plots into a single figure
-# Function to combine plots into a single figure
 # Function to combine plots into a single figure
 def combine_plots(plot_data):
     # Create figure and axis with projection (increase dpi for better quality)
