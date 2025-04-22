@@ -1,11 +1,13 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-station = ("BEHR")
+
+country = "Thailand"
+station = "BNKK"
 
 
 # Load the DataFrame from the .pkl file
-df = pd.read_pickle(f"../processed_data/Malaysia/Filtered_cm/mm_{station}.pkl")
+df = pd.read_pickle(f"../processed_data/{country}/Filtered_cm/mm_{station}.pkl")
 
 pd.set_option("display.max_rows", None)   # Show all rows
 pd.set_option("display.max_columns", None)  # Show all columns

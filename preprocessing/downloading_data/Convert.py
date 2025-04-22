@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 from pyproj import Geod
-
+country = "Thailand"
 geod = Geod(ellps="WGS84")
 
 def get_displacement_mm(lat0, lon0, lat, lon):
@@ -13,9 +13,9 @@ def get_displacement_mm(lat0, lon0, lat, lon):
     d_east = dist_m * np.sin(az_rad) *100 # cm
     return d_north, d_east
 
-directory = "../processed_data/Malaysia/Filtered"
+directory = f"../processed_data/{country}/Filtered"
 
-directory_out = "../processed_data/Malaysia/Filtered_cm"
+directory_out = f"../processed_data/{country}/Filtered_cm"
 
 for filename in os.listdir(directory_out):
     file_path = os.path.join(directory_out, filename)

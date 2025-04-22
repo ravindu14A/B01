@@ -25,7 +25,7 @@ class MissingDataGNSS:
         # Convert to DataFrame
         full_date_df = pd.DataFrame({"Date": full_date_range})
 
-        # Merge with original data to create a complete time series
+        # Merge with original data_Thailand to create a complete time series
         self.processed_data = pd.merge(full_date_df, self.data, on="Date", how="left")
 
         return self.processed_data
@@ -33,7 +33,7 @@ class MissingDataGNSS:
     def interpolate_missing_values(self, columns=None, method='linear'):
 
         if self.processed_data is None:
-            raise ValueError("Processed data not available. Call fill_missing_dates() first.")
+            raise ValueError("Processed data_Thailand not available. Call fill_missing_dates() first.")
 
         if columns is None:
             raise ValueError("Columns were not given.")
@@ -70,7 +70,7 @@ class MissingDataGNSS:
     def save_processed_data(self, output_path):
 
         if self.processed_data is None:
-            raise ValueError("No processed data available to save.")
+            raise ValueError("No processed data_Thailand available to save.")
 
         try:
             # Reset index to include the Date column in the saved file
@@ -81,5 +81,5 @@ class MissingDataGNSS:
             data_to_save.to_csv(output_path, index=False)
             return True
         except Exception as e:
-            print(f"Error saving data: {e}")
+            print(f"Error saving data_Thailand: {e}")
             return False

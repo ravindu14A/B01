@@ -8,7 +8,7 @@ import numpy as np
 import Coordinate as geo
 import matplotlib.pyplot as plt
 
-
+country = "Thailand"
 class StationDataProcessor:
 
     def __init__(self, input_directory, output_directory):
@@ -146,7 +146,7 @@ class StationDataProcessor:
 
     def _write_station_files(self, station_data):
         """
-        Saves station data as pickle files instead of CSV.
+        Saves station data_Thailand as pickle files instead of CSV.
 
         Example:
             station_data = {
@@ -172,16 +172,16 @@ class StationDataProcessor:
             # print(f"Saved: {filename}")
 
 
-object = StationDataProcessor(r"..\..\data", r"..\processed_data\Thailand\Raw_pickle")
+object = StationDataProcessor(f"../../data_{country}", f"../processed_data/{country}/Raw_pickle")
 
 object.process_files()
 
 ###Filtering
-directory = "../processed_data/Thailand/Raw_pickle"
-directory_out = "../processed_data/Thailand/Filtered"
+directory = f"../processed_data/{country}/Raw_pickle"
+directory_out = f"../processed_data/{country}/Filtered"
 
 
-threshold= 300
+threshold= 100
 cutoff = pd.Timestamp("2004-01-01 00:00:00")
 
 for filename in os.listdir(directory_out):
@@ -194,7 +194,7 @@ for filename in os.listdir(directory):
         filepath = os.path.join(directory, filename)
         with open(filepath, 'rb') as file:
             data = pickle.load(file)
-            # Do something with `data`
+            # Do something with `data_Thailand`
             df = pd.DataFrame(data)
 
             entries = len(df["date"])
