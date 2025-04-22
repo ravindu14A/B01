@@ -2,12 +2,15 @@ import os
 from collections import defaultdict
 from datetime import datetime
 import re
+import pickle
 import pandas as pd
 import numpy as np
 import Coordinate as geo
 import matplotlib.pyplot as plt
 
+
 class StationDataProcessor:
+
     def __init__(self, input_directory, output_directory):
         """
         Initialize the processor with input and output directories.
@@ -157,11 +160,11 @@ class StationDataProcessor:
             df = pd.DataFrame([
                 [date, values[0][0], values[0][1], values[0][2], values[1]]  # Unpack tuple and keep array
                 for date, values in data.items()
-            ], columns=["Date", "lat", "long", "alt", "variance"])
-            df["Date"] = pd.to_datetime(df["Date"], format="%y%b%d")  # 💡 Notice the format change
+            ], columns=["date", "lat", "long", "alt", "covariance matrix"])
+            df["date"] = pd.to_datetime(df["date"], format="%y%b%d")  # 💡 Notice the format change
 
             # Sort by Date (Earliest → Latest)
-            df = df.sort_values(by="Date").reset_index(drop=True)
+            df = df.sort_values(by="date").reset_index(drop=True)
             # Save DataFrame as a pickle file
             filename = os.path.join(self.output_directory, f"{station}.pkl")
             df.to_pickle(filename)
@@ -169,9 +172,46 @@ class StationDataProcessor:
             # print(f"Saved: {filename}")
 
 
-object = StationDataProcessor(r"..\..\data", r"..\processed_data\SE_Asia")
+object = StationDataProcessor(r"..\..\data", r"..\processed_data\Thailand\Raw_pickle")
 
 object.process_files()
+
+###Filtering
+directory = "../processed_data/Thailand/Raw_pickle"
+directory_out = "../processed_data/Thailand/Filtered"
+
+
+threshold= 300
+cutoff = pd.Timestamp("2004-01-01 00:00:00")
+
+for filename in os.listdir(directory_out):
+    file_path = os.path.join(directory_out, filename)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+
+for filename in os.listdir(directory):
+    if filename.endswith('.pkl'):
+        filepath = os.path.join(directory, filename)
+        with open(filepath, 'rb') as file:
+            data = pickle.load(file)
+            # Do something with `data`
+            df = pd.DataFrame(data)
+
+            entries = len(df["date"])
+            entry_time = df["date"][0]
+
+            if entries>threshold and entry_time<cutoff:
+                filename = os.path.join(directory_out, f"{filename}")
+                df.to_pickle(filename)
+
+
+num_files = len([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))])
+num_files_filtered = len([f for f in os.listdir(directory_out) if os.path.isfile(os.path.join(directory_out, f))])
+
+print(f"""Number of files in original directory: {num_files}
+Number of files in filtered directory: {num_files_filtered}""")
+
+
 
 
 
