@@ -51,11 +51,11 @@ class OutlierDetector:
         lat_trend, lat_residuals, lat_outlier = self.__local_outliers(x, y_lat, num_segments=5, threshold=3)
 
         # Longitude
-        y_long = df['longitude'].values
+        y_long = df['long'].values
         long_trend, long_residuals, long_outlier = self.__local_outliers(x, y_long, num_segments=5, threshold=3)
 
         # Height
-        y_height = df['height'].values
+        y_height = df['alt'].values
         coeffs_height = np.polyfit(x, y_height, 1)
         trend_height = np.polyval(coeffs_height, x)
         height_residuals = y_height - trend_height
