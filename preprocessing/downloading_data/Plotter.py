@@ -7,8 +7,8 @@ station = "ARAU"
 
 
 # Load the DataFrame from the .pkl file
-df = pd.read_pickle(f"../processed_data/{country}/Filtered_cm/mm_{station}.pkl")
-
+df = pd.read_pickle(f"../processed_data/{country}/Filtered_cm_normalised/{station}.pkl")
+print(df['date'].dtypes)
 pd.set_option("display.max_rows", None)   # Show all rows
 pd.set_option("display.max_columns", None)  # Show all columns
 pd.set_option("display.max_colwidth", None)  # Prevent truncation of long values
@@ -36,10 +36,13 @@ axes[2].set_xlabel("Date")  # Only the last subplot needs x-axis label
 axes[2].legend()
 axes[2].grid(True)
 
+
 # Rotate x-axis labels for better readability
 plt.xticks(rotation=45)
 
 # Adjust spacing
 plt.tight_layout()
+# plt.savefig("normalised.png")
+# plt.savefig("original.png")
 # Show the figure
 plt.show()

@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 from pyproj import Geod
-country = "Thailand"
+country = "Malaysia"
 geod = Geod(ellps="WGS84")
 
 def get_displacement_mm(lat0, lon0, lat, lon):
@@ -46,14 +46,10 @@ for filename in os.listdir(directory):
     df["lat"] = north_array
     df["long"] = east_array
 
-    filename = os.path.join(directory_out, f"mm_{filename}")
+    filename = os.path.join(directory_out, f"{filename}")
     df.to_pickle(filename)
 
-# filepath = os.path.join(directory_out, "ARAU.pkl")
-#
-# with open(filepath, 'rb') as f:
-#     data = pickle.load(f)
-#     df = pd.DataFrame(data)
+
 
 
 
