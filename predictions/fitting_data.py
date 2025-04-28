@@ -7,8 +7,6 @@ from preprocessing.internal_dataclass.dataset import Station, GeoDataset
 #define longtitide and latitude as long and lat
 def combine():
     #loop through data frame and find their distance as a combination of longtitude and latitude
-    for
-        ...
     dist = np.sqrt(long**2 + lat**2)
 
 
