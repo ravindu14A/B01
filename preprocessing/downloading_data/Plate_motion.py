@@ -5,7 +5,7 @@ from datetime import timedelta
 
 country = "Malaysia"
 North = 0.4   #cm/year
-East = 2.9 #cm/year
+East = 2.7 #cm/year
 
 North = North/365.25
 East = East/365.25
