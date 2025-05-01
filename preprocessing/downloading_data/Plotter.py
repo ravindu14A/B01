@@ -2,12 +2,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-country = "Thailand"
-station = "BNKK"
+country = "Malaysia"
+station = "ARAU"
+
+
 
 
 # Load the DataFrame from the .pkl file
-df = pd.read_pickle(f"../processed_data/{country}/Filtered_cm/mm_{station}.pkl")
+df = pd.read_pickle(f"../processed_data/{country}/PCA/{station}.pkl")
 
 pd.set_option("display.max_rows", None)   # Show all rows
 pd.set_option("display.max_columns", None)  # Show all columns
@@ -24,22 +26,25 @@ axes[0].grid(True)
 axes[0].set_title(f"{station} Data Over Time", fontsize=14, fontweight="bold")
 
 # Plot Longitude vs. Date
-axes[1].plot(df["date"], df["long"], marker="o", linestyle="-", markersize=2, label="Longitude", color="green")
-axes[1].set_ylabel("East_West (cm)")
-axes[1].legend()
-axes[1].grid(True)
+# axes[1].plot(df["date"], df["long"], marker="o", linestyle="-", markersize=2, label="Longitude", color="green")
+# axes[1].set_ylabel("East_West (cm)")
+# axes[1].legend()
+# axes[1].grid(True)
 
 # Plot Altitude vs. Date
-axes[2].plot(df["date"], df["alt"], marker="o", linestyle="-", markersize=2, label="Altitude", color="red")
-axes[2].set_ylabel("Altitude (abs in m)")
-axes[2].set_xlabel("Date")  # Only the last subplot needs x-axis label
-axes[2].legend()
-axes[2].grid(True)
+# axes[2].plot(df["date"], df["alt"], marker="o", linestyle="-", markersize=2, label="Altitude", color="red")
+# axes[2].set_ylabel("Altitude (abs in m)")
+# axes[2].set_xlabel("Date")  # Only the last subplot needs x-axis label
+# axes[2].legend()
+# axes[2].grid(True)
+
 
 # Rotate x-axis labels for better readability
 plt.xticks(rotation=45)
 
 # Adjust spacing
 plt.tight_layout()
+# plt.savefig("normalised.png")
+# plt.savefig("original.png")
 # Show the figure
 plt.show()

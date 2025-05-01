@@ -44,8 +44,8 @@ class StationDataProcessor:
             file_path = os.path.join(self.input_directory, file_name)
 
             info = self._process_file(file_path)
-
-            for name, pos, var in zip(info[0], info[1], info[3]):
+            #add var, info[2]
+            for name, pos, var in zip(info[0], info[1], info[2]):
                 in_dict = False
                 for key in self.station_dict.keys():
                     if name == key:
@@ -94,7 +94,7 @@ class StationDataProcessor:
                         var_XYZ.append((float(XX), float(YY), float(ZZ)))
                         name.append(split[1])
                         counter = 0
-
+#Covaraince part follows
                 elif len(split) < 4:
                     in_dict = False
                     for key in cov_dict.keys():
@@ -141,7 +141,7 @@ class StationDataProcessor:
                 position, var = geo.getGeodetic(X, Y, Z, M)
                 pos_geo.append(position)
                 matrix_geo.append(var)
-
+        #add matrix_geo
         return name, pos_geo, date, matrix_geo
 
     def _write_station_files(self, station_data):
@@ -181,7 +181,7 @@ directory = f"../processed_data/{country}/Raw_pickle"
 directory_out = f"../processed_data/{country}/Filtered"
 
 
-threshold= 100
+threshold= 300/7
 cutoff = pd.Timestamp("2004-01-01 00:00:00")
 
 for filename in os.listdir(directory_out):
@@ -200,9 +200,11 @@ for filename in os.listdir(directory):
             entries = len(df["date"])
             entry_time = df["date"][0]
 
+
             if entries>threshold and entry_time<cutoff:
                 filename = os.path.join(directory_out, f"{filename}")
                 df.to_pickle(filename)
+                print(entries)
 
 
 num_files = len([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))])
@@ -210,9 +212,6 @@ num_files_filtered = len([f for f in os.listdir(directory_out) if os.path.isfile
 
 print(f"""Number of files in original directory: {num_files}
 Number of files in filtered directory: {num_files_filtered}""")
-
-
-
 
 
 
