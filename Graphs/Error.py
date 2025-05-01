@@ -16,7 +16,7 @@ def add_arrow(lat1, long1, lat2, long2):
                 arrowprops=dict(arrowstyle="->", color='red', lw=2))
 
 
-directory = Path("processed_data/Malaysia")
+directory = Path("../preprocessing/processed_data/Malaysia")
 
 fig = plt.figure(figsize=(10, 6))
 ax = plt.axes(projection=ccrs.PlateCarree())

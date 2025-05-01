@@ -1,5 +1,4 @@
 import os
-
 from util.load_dataset import load_geodataset
 from  missing_data.filling_missing_data import MissingDataGNSS
 from outlier_detection.outlier import OutlierDetector
@@ -13,7 +12,7 @@ def save_data(ds, output_file = 'results'):
         pickle.dump(ds, f)
 
 
-def plot_station_columns(dataset: GeoDataset, station_name: str, x_col = 'date', y_col = 'lat'):
+def plot_station_columns(dataset: GeoDataset, station_name: str, x_col = 'date', y_col = 'long'):
     """
     Plots specific columns from a station's observation data.
 
@@ -53,27 +52,28 @@ def plot_station_columns(dataset: GeoDataset, station_name: str, x_col = 'date',
 
 
 def main():
-    data_path = r'processed_data\Thailand'
+    data_path = r'processed_data\Malaysia\Filtered_cm'
 
     dataset = load_geodataset(data_path)
     #If u want to use only one sample
     #dataset = GeoDataset(samples=dataset.samples[:1])
     dataset = GeoDataset(samples=dataset.samples)
 
-    plot_station_columns(dataset, station_name='')
+    plot_station_columns(dataset, station_name='mm_KUAL')
 
-    '''filling_data = MissingDataGNSS(dataset)
-    dataset = filling_data.processing_all_files()'''
+    filling_data = MissingDataGNSS(dataset)
+    dataset = filling_data.processing_all_files()
 
     '''outlied_detector = OutlierDetector(dataset)
     dataset = outlied_detector.clean_dataset()'''
 
     for sample in dataset.samples:
-        if sample.name == 'ARAU':
-            with open('ARAU_new.pkl', 'wb') as f:
+        if sample.name == 'mm_KUAL':
+            with open('../predictions/KUAL_new.pkl', 'wb') as f:
                 pickle.dump(sample, f)
     # Save the data as pickle
-    #save_data(dataset)
+    save_data(dataset)
+    plot_station_columns(dataset, station_name='mm_KUAL')
 
 if __name__ == '__main__':
     main()
