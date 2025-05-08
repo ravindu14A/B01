@@ -131,6 +131,3 @@ def generatePreprocessedDF():
 	addLatLonHeight(df)
 	addRelativeDisplacementmm(df)
 	return df
-
-
-

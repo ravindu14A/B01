@@ -91,7 +91,7 @@ def plate_motion(x,y,z,lat,lon):
 		[-np.sin(lat_rad)*np.cos(lon_rad), -np.sin(lat_rad)*np.sin(lon_rad), np.cos(lat_rad)],
 		[np.cos(lat_rad)*np.cos(lon_rad),  np.cos(lat_rad)*np.sin(lon_rad),  np.sin(lat_rad)]
 	])
-	v_relative =-  R @ v_xyz # not sure why this is negative
+	v_relative = -R @ v_xyz # not sure why this is negative
 	ve,vn = v_relative[0], v_relative[1] # not sure why e,n flipped
 	return vn*1000, ve*1000
 
