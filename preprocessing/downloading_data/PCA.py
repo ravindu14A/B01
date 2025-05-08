@@ -3,41 +3,46 @@ import os
 import pickle
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
+
+def yohooo():
+    # Save current working directory
+    original_cwd = os.getcwd()
+
+    # Get the path of the current script
+    script_path = os.path.abspath(__file__)
+    script_dir = os.path.dirname(script_path)
+
+    os.chdir(script_dir)
+
+    country = "Malaysia"
+    directory = f"../processed_data/{country}/Filtered_cm_normalised"
 
 
-country = "Thailand"
-directory = f"../processed_data/{country}/Filtered_cm_normalised"
+    for filename in os.listdir(directory):
+        if filename.endswith('.pkl'):
+            filepath = os.path.join(directory, filename)
 
-directory_out = f"../processed_data/{country}/PCA"
+            with open(filepath, 'rb') as f:
+                data = pickle.load(f)
+                df = pd.DataFrame(data)
 
-for filename in os.listdir(directory_out):
-    file_path = os.path.join(directory_out, filename)
-    if os.path.isfile(file_path):
-        os.remove(file_path)
+                X = df[['lat', 'long']].to_numpy()
 
-for filename in os.listdir(directory):
-    if filename.endswith('.pkl'):
-        filepath = os.path.join(directory, filename)
+                pca = PCA(n_components=2)
+                X_pca = pca.fit_transform(X)
 
-        with open(filepath, 'rb') as f:
-            data = pickle.load(f)
-            df = pd.DataFrame(data)
-
-            X = df[['lat', 'long']].to_numpy()
-
-            pca = PCA(n_components=2)
-            X_pca = pca.fit_transform(X)
-
-            # Subtract the first point from all points
-            X_pca = X_pca - X_pca[0]
+                # Subtract the first point from all points
+                X_pca = X_pca - X_pca[0]
 
 
-            explained_variance = pca.explained_variance_ratio_
+                explained_variance = pca.explained_variance_ratio_
 
-            out_df = pd.DataFrame({
-                'date': df['date'],
-                'lat': X_pca[:,0]
-            })
+                out_df = pd.DataFrame({
+                    'date': df['date'],
+                    'lat': X_pca[:,0]
+                })
 
-    filename = os.path.join(directory_out, f"{filename}")
-    out_df.to_pickle(filename)
+            if filename == "ARAU.pkl":
+                os.chdir(original_cwd)
+                return pca
