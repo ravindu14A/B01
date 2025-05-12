@@ -69,7 +69,7 @@ try:
     # Mark intersection
     plt.scatter(root_years, y_point, color='blue', zorder=5, label="Predicted Intersection")
     plt.axhline(df_fit["lat"].iloc[0], color='black', linestyle="--", linewidth=1, label='Initial Lat')
-    plt.text(root_years + 2, y_point + 0.005,
+    plt.text(root_years + 2, y_point -5,
              f"Predicted EQ\n~Year {int(start_date.year + root / 365.25)}",
              fontsize=10, color='blue')
 
