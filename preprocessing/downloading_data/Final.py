@@ -37,7 +37,7 @@ def correct_discontinuities(df, column='lat', threshold=5, start_date=None, max_
     return corrected
 
 t_treshold = [3,0.8,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-t_max = [10,100,5,200,10,5,10,5,5,200,5,5,5,5,50,1]
+t_max = [10,100,5,200,10,5,1,5,5,1,5,5,5,5,50,1]
 
 m_treshold = [3,0.8,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 m_max = [10,100,5,200,10,5,10,5,5,1,5,5,5,5,50,1]
