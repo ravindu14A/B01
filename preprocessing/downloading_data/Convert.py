@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 from pyproj import Geod
-country = "Malaysia"
+country = "Thailand"
 geod = Geod(ellps="WGS84")
 
 def get_displacement_mm(lat0, lon0, lat, lon):
