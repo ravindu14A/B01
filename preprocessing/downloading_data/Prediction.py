@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit, bisect
 
 # === Load Data ===
-station = "BNKK"
+station = "PHUK"
 country = "Thailand"
 filepath = f"../processed_data/{country}/Final/{station}.pkl"
 
@@ -50,7 +50,7 @@ for name, val in zip(param_names, popt):
     print(f"{name} = {val:.6f}")
 
 # === Prediction & Intersection ===
-years = 350
+years = 360
 safe_end = round(years * 365.25)
 T = np.arange(start_day1, safe_end, 5)
 y_fit = model_func(T, *popt)
@@ -69,7 +69,7 @@ try:
     # Mark intersection
     plt.scatter(root_years, y_point, color='blue', zorder=5, label="Predicted Intersection")
     plt.axhline(df_fit["lat"].iloc[0], color='black', linestyle="--", linewidth=1, label='Initial Lat')
-    plt.text(root_years + 2, y_point -5,
+    plt.text(root_years + 2, y_point -8,
              f"Predicted EQ\n~Year {int(start_date.year + root / 365.25)}",
              fontsize=10, color='blue')
 
@@ -89,7 +89,7 @@ plt.plot(df_years, df['lat'], label='Original Data', color='green')
 plt.plot(df_subset_years, y_pred, color='red', label='Linear Fit Segment')
 
 plt.xlabel('Years since reference date')
-plt.ylabel('Latitude (PCA transformed)')
+plt.ylabel('Position (PCA transformed)')
 plt.title(f'{station} - Earthquake Prediction (Relative Time)')
 plt.legend()
 plt.grid(True)
