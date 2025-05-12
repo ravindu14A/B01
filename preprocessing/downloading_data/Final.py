@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 
 country = "Thailand"
 
-#2012
+
 directory = f"../processed_data/{country}/PCA"
 
 directory_out = f"../processed_data/{country}/Final"
@@ -36,8 +36,8 @@ def correct_discontinuities(df, column='lat', threshold=5, start_date=None, max_
         corrected[column] = corrected[column] + shifts
     return corrected
 
-t_treshold = [3,0.8,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-t_max = [10,100,5,200,10,5,1,5,5,1,5,5,5,5,50,1]
+t_treshold = [3,0.8,1,1,1,1,2,1,1,1,1,1,1,1,1,1]
+t_max = [10,100,5,200,10,5,350,5,5,1,5,5,5,5,50,1]
 
 m_treshold = [3,0.8,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 m_max = [10,100,5,200,10,5,10,5,5,1,5,5,5,5,50,1]
@@ -48,7 +48,7 @@ for num, filename in enumerate(os.listdir(directory)):
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
             df = pd.DataFrame(data)
-            corrected = correct_discontinuities(df, column='lat', threshold=t_treshold[num], start_date="2006-02-01", max_days=t_max[num])
+            corrected = correct_discontinuities(df, column='lat', threshold=t_treshold[num], start_date="2011-12-01", max_days=t_max[num])
 
             plt.figure(figsize=(12, 5))
             plt.plot(df['date'], df['lat'], label='Original', color='red', alpha=0.6)
