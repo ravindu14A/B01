@@ -45,7 +45,7 @@ class StationDataProcessor:
 
             info = self._process_file(file_path)
             #add var, info[2]
-            for name, pos, var in zip(info[0], info[1], info[2]):
+            for name, pos, var in zip(info[0], info[1], info[3]):
                 in_dict = False
                 for key in self.station_dict.keys():
                     if name == key:
@@ -199,6 +199,7 @@ for filename in os.listdir(directory):
 
             entries = len(df["date"])
             entry_time = df["date"][0]
+
 
 
             if entries>threshold and entry_time<cutoff:

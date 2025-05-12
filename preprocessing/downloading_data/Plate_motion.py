@@ -3,9 +3,9 @@ import pickle
 import pandas as pd
 from datetime import timedelta
 
-country = "Malaysia"
-North = 0.4   #cm/year
-East = 2.7 #cm/year
+country = "Thailand"
+North = -1.15821  #cm/year
+East = 2.9768 #cm/year
 
 North = North/365.25
 East = East/365.25
@@ -23,6 +23,7 @@ for filename in os.listdir(directory_out):
 for filename in os.listdir(directory):
     if filename.endswith('.pkl'):
         filepath = os.path.join(directory, filename)
+
 
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
