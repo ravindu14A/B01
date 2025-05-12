@@ -1,17 +1,16 @@
 import pickle
 import pandas as pd
-from sklearn.decomposition import PCA
-from preprocessing.downloading_data.PCA import yohooo
+from preprocessing.projection.PCA import yohooo
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 # Replace 'your_file.pkl' with the actual file path
-with open(r'..\..\preprocessing\processed_data\Malaysia\PCA\ARAU.pkl', 'rb') as file:
+with open(r'../../data/partially_processed/Thailand/PCA\PHUK.pkl', 'rb') as file:
     data = pickle.load(file)
 
 # Now 'data' contains the object that was saved in the pickle file
-with open(r'..\..\preprocessing\processed_data\Malaysia\Filtered\ARAU.pkl', 'rb') as file:
+with open(r'../../data/partially_processed/Thailand/Filtered_cm\PHUK.pkl', 'rb') as file:
     cov_ARAU = pickle.load(file)
 
 merged_df = pd.merge(data, cov_ARAU[['date', 'covariance matrix']], on='date', how='inner')  # Options: 'inner', 'outer', 'left', 'right'
@@ -34,7 +33,38 @@ def smart_epsilon(x0):
 print(merged_df.iloc[0]['covariance matrix'])
 merged_df['covariance matrix'] = merged_df.apply(lambda row:new_covariance(row['covariance matrix']), axis=1)
 
+# Convert date to datetime just to be sure
+merged_df['date'] = pd.to_datetime(merged_df['date'])
+
+# Set reference and end date (same logic as in second file)
+start_date = merged_df['date'].iloc[0]
+end_date = pd.to_datetime("2004-12-15")
+
+# Add numeric time axis
+merged_df['days_from_ref'] = (merged_df['date'] - start_date).dt.days
+
+# Subset the data for slope estimation
+df_subset = merged_df[merged_df['date'] <= end_date]
+
+# Prepare features and target
+X = df_subset['days_from_ref'].values.reshape(-1, 1)
+y = df_subset['lat'].values
+
+# Fit linear regression
+from sklearn.linear_model import LinearRegression
+model = LinearRegression()
+model.fit(X, y)
+slope_per_day = model.coef_[0]
+
+# Optional print
+slope_mm_per_year = slope_per_day * 10 * 365
+print(f"Slope (mm/year): {slope_mm_per_year:.3f}")
+
+
+
 merged_df = merged_df.iloc[350:]
+
+
 
 print(merged_df)
 
@@ -49,7 +79,7 @@ y = merged_df['lat'].values
 
 # y: known data points (shape: T)
 # cov: known covariance matrix of y (shape: T x T)
-N = 100  # number of Monte Carlo samples
+N = 50  # number of Monte Carlo samples
 
 simulated_datasets = np.random.multivariate_normal(y, D, size=N)
 
@@ -61,23 +91,25 @@ for i in range(N):
     dates = merged_df['date'].to_list()
     values = merged_df['lat'].to_numpy()
 
+
     # Step 2: Convert dates to numeric (e.g., days since first date)
     base_date = dates[0]
     t_numeric = np.array([(d - base_date).days for d in dates])
 
     # Step 3: Fit quadratic function
-    def quadratic_func(t, a, b, c, d, e):
-        return a * t**2 + b * t + c + d * t **0.5 + e * t ** 3
+    def model_func(t, A, B, c1, c2, d):
+        return A * np.exp(-c1 * (t - t_numeric[0])) + B * np.exp(-c2 * (t - t_numeric[0])) + d + slope_per_day * (
+                    t - t_numeric[0])
 
-    params, _ = curve_fit(quadratic_func, t_numeric, simulated_datasets[i])
+    params, _ = curve_fit(model_func, t_numeric, simulated_datasets[i])
 
     # Step 4: Create future dates (e.g., 30 years = 30*365 days)
-    future_days = 40 * 365
+    future_days = 200 * 365
     t_future_numeric = np.arange(t_numeric[-1] + 1, t_numeric[-1] + future_days + 1)
     future_dates = [base_date + pd.Timedelta(days=int(d)) for d in t_future_numeric]
 
     # Step 5: Predict future values
-    future_preds = quadratic_func(t_future_numeric, *params)
+    future_preds = model_func(t_future_numeric, *params)
     plt.plot(future_dates, future_preds, label='30-Year Forecast', color='red')
 
 

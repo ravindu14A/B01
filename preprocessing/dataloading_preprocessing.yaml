@@ -1,5 +1,0 @@
-data_path: 'processed_data\Malaysia\Filtered_cm'
-output_path: '../predictions/KUAL_new.pkl'
-
-single_file: True
-single_file_name : 'mm_KUAL'
