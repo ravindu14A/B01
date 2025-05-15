@@ -89,9 +89,11 @@ def convert(x, y, z):
 
 
 def jacobian(lat, long):
-    jacobian = np.array([[-np.sin(long), np.cos(long), 0],
-                         [-np.sin(lat) * np.cos(long), -np.sin(lat) * np.sin(long), np.cos(lat)],
-                         [np.cos(lat) * np.cos(long), np.cos(lat) * np.sin(long), np.sin(lat)]])
+    jacobian = np.array([
+    [-np.sin(lat) * np.cos(long), -np.sin(lat) * np.sin(long),  np.cos(lat)],  # North
+    [-np.sin(long),                np.cos(long),                0],            # East
+    [ np.cos(lat) * np.cos(long),  np.cos(lat) * np.sin(long),  np.sin(lat)]   # Up
+])
     return jacobian
 
 

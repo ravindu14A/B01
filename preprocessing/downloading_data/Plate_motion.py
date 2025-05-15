@@ -2,8 +2,11 @@ import os
 import pickle
 import pandas as pd
 from datetime import timedelta
+import main as mn
 
-country = "Thailand"
+# Load data
+country = mn.country
+station = mn.station
 North = -1.15821  #cm/year
 East = 2.9768 #cm/year
 

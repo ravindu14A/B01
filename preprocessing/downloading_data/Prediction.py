@@ -1,13 +1,15 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit, bisect
 import pickle
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit, bisect
+import Error as Er
+import main as mn
 
-# === Load Data ===
-station = "BNKK"
-country = "Thailand"
+# Load data
+country = mn.country
+station = mn.station
 filepath = f"../processed_data/{country}/Final/{station}.pkl"
 
 with open(filepath, 'rb') as f:
@@ -24,7 +26,7 @@ mask = (df['date'] >= start_date) & (df['date'] <= end_date)
 df_subset = df.loc[mask]
 X = df_subset['days_from_ref'].values.reshape(-1, 1)
 y = df_subset['lat'].values
-
+print(df)
 model = LinearRegression()
 model.fit(X, y)
 slope_per_day = model.coef_[0]
@@ -50,26 +52,27 @@ for name, val in zip(param_names, popt):
     print(f"{name} = {val:.6f}")
 
 # === Prediction & Intersection ===
-years = 350
+years = 360
 safe_end = round(years * 365.25)
 T = np.arange(start_day1, safe_end, 5)
 y_fit = model_func(T, *popt)
 
+
 def f(t):
-    return model_func(t, *popt) - df_fit["lat"].iloc[0]
+    return model_func(t, *popt, v) - df_fit["lat"].iloc[0]
 
 # === Plotting ===
 plt.figure(figsize=(12, 6))
 
 try:
-    root = bisect(f, 10000, safe_end - 1)
+    root = bisect(f, start_day1+2000, safe_end - 1)
     root_years = root / 365.25
     y_point = model_func(root, *popt)
 
     # Mark intersection
     plt.scatter(root_years, y_point, color='blue', zorder=5, label="Predicted Intersection")
     plt.axhline(df_fit["lat"].iloc[0], color='black', linestyle="--", linewidth=1, label='Initial Lat')
-    plt.text(root_years + 2, y_point + 0.005,
+    plt.text(root_years + 2, y_point -8,
              f"Predicted EQ\n~Year {int(start_date.year + root / 365.25)}",
              fontsize=10, color='blue')
 
@@ -79,19 +82,27 @@ try:
 except Exception as e:
     print("Adjust bisection settings:", e)
 
+y_lfit = model_func(T, *Er.l_params)
+y_ufit = model_func(T, *Er.u_params)
+y_mfit = model_func(T, *Er.m_params)
+
 # === Plot All Data and Fits ===
 T_years = T / 365.25
 df_years = df['days_from_ref'] / 365.25
 df_subset_years = df_subset['days_from_ref'] / 365.25
+
 
 plt.plot(T_years, y_fit, 'r-', label='Fitted Curve')
 plt.plot(df_years, df['lat'], label='Original Data', color='green')
 plt.plot(df_subset_years, y_pred, color='red', label='Linear Fit Segment')
 
 plt.xlabel('Years since reference date')
-plt.ylabel('Latitude (PCA transformed)')
-plt.title(f'{station} - Earthquake Prediction (Relative Time)')
+plt.ylabel('Position (PCA transformed)')
+plt.title(f'{station} - Earthquake Prediction since {start_date}')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+
+
