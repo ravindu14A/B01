@@ -2,53 +2,56 @@ from sklearn.decomposition import PCA
 import os
 import pickle
 import pandas as pd
-import matplotlib.pyplot as plt
-import os
+import preprocessing.conversion.reading_files as mn
 
-"""
-Projecting the displacement into one direction
-returns PCA model fitted to data
-"""
+# Load data
+country = mn.country
+station = mn.station
+directory = f"../processed_data/{country}/Filtered_cm_normalised"
+directory_out = f"../processed_data/{country}/PCA"
+start_date = pd.to_datetime("2004-12-30")
 
+trans = {}
+# Clear the output directory
+for filename in os.listdir(directory_out):
+    file_path = os.path.join(directory_out, filename)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
 
-def yohooo():
-    # Save current working directory
-    original_cwd = os.getcwd()
+# Process each file
+for filename in os.listdir(directory):
+    if filename.endswith('.pkl'):
+        filepath = os.path.join(directory, filename)
 
-    # Get the path of the current script
-    script_path = os.path.abspath(__file__)
-    script_dir = os.path.dirname(script_path)
+        with open(filepath, 'rb') as f:
+            data = pickle.load(f)
+            df = pd.DataFrame(data)
 
-    os.chdir(script_dir)
+        # Filter by date
+        df_subset = df[df['date'] >= start_date]
+        if df_subset.empty:
+            print(f"Skipping {filename}: no data after {start_date.date()}")
+            continue
 
-    country = "Thailand"
-    directory = f"../processed_data/{country}/Filtered_cm"
+        # Prepare training and full data
+        X_train = df_subset[['lat', 'long']].to_numpy()
+        X_all = df[['lat', 'long']].to_numpy()
 
+        # Fit and transform
+        pca = PCA(n_components=2)
+        pca.fit(X_train)
+        X_pca = pca.transform(X_all)
 
-    for filename in os.listdir(directory):
-        if filename.endswith('.pkl'):
-            filepath = os.path.join(directory, filename)
+        P = pca.components_
 
-            with open(filepath, 'rb') as f:
-                data = pickle.load(f)
-                df = pd.DataFrame(data)
+        trans[f"{filename[:-4]}"] = P
 
-                X = df[['lat', 'long']].to_numpy()
+        # Save output
+        out_df = pd.DataFrame({
+            'date': df['date'].values,
+            'lat': X_pca[:, 0],
+            'long': X_pca[:, 1]
+        })
 
-                pca = PCA(n_components=2)
-                X_pca = pca.fit_transform(X)
-
-                # Subtract the first point from all points
-                X_pca = X_pca - X_pca[0]
-
-
-                explained_variance = pca.explained_variance_ratio_
-
-                out_df = pd.DataFrame({
-                    'date': df['date'],
-                    'lat': X_pca[:,0]
-                })
-
-            if filename == "PHUK.pkl":
-                os.chdir(original_cwd)
-                return pca
+        out_path = os.path.join(directory_out, filename)
+        out_df.to_pickle(out_path)

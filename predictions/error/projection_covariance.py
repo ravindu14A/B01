@@ -1,6 +1,6 @@
 import pickle
 import pandas as pd
-from preprocessing.projection.PCA import yohooo
+from trash.PCA import yohooo
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit

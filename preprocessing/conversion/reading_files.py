@@ -1,17 +1,17 @@
 import os
 from collections import defaultdict
+from datetime import datetime
 import re
 import pickle
 import pandas as pd
 import numpy as np
-from preprocessing.conversion import Convert_coordinates as geo
+import preprocessing.conversion.Convert_coordinates as geo
+import matplotlib.pyplot as plt
 
-"""
-Raw_pickle - files with lat, long, in deg with covariance matrices
-Filtered - contains only useful stations
-"""
 
+# Load data
 country = "Thailand"
+station = "PHUK"
 class StationDataProcessor:
 
     def __init__(self, input_directory, output_directory):
@@ -149,7 +149,7 @@ class StationDataProcessor:
 
     def _write_station_files(self, station_data):
         """
-        Saves station Thailand as pickle files instead of CSV.
+        Saves station data_Thailand as pickle files instead of CSV.
 
         Example:
             station_data = {
@@ -197,7 +197,7 @@ for filename in os.listdir(directory):
         filepath = os.path.join(directory, filename)
         with open(filepath, 'rb') as file:
             data = pickle.load(file)
-            # Do something with `Thailand`
+            # Do something with `data_Thailand`
             df = pd.DataFrame(data)
 
             entries = len(df["date"])
@@ -216,7 +216,6 @@ num_files_filtered = len([f for f in os.listdir(directory_out) if os.path.isfile
 
 print(f"""Number of files in original directory: {num_files}
 Number of files in filtered directory: {num_files_filtered}""")
-
 
 
 
