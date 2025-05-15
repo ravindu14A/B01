@@ -24,7 +24,7 @@ filtered_stations = ["ARAU","BEHR","BNKK","GETI", "KMIT","KTPK","KUAL","KUAN","N
 
 
 
-filtered_stations = [ "ARAU"] 
+filtered_stations = [ "ARAU","PHUK","PHKT"] 
 '''cursed_station = "IPOH"
 #from scipy.stats import chi2
 
@@ -49,7 +49,7 @@ for station_name in filtered_stations:
 		min_start_date = df[df['station']==station_name]['days_since_eq'].min()
 		v, d = fitting.fit_station_linear_trend(df, station_name, 'pc1', min_start_date, 0)
 
-		#df = earthquake_correction.correct_earthquake_signal_simple_shift(df, station_name, 'pc1', dayssince2005eq, visualize=True)
+		df = earthquake_correction.correct_earthquake_signal_simple_shift(df, station_name, 'pc1', dayssince2005eq, visualize=True)
 		
 		df = earthquake_correction.correct_earthquake_signal_curve_fitting(df, station_name, 'pc1', dayssince2012eq, visualize=True, v=v)
 

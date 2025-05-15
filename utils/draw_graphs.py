@@ -4,8 +4,9 @@ import matplotlib.dates as mdates
 import geopandas as gpd
 import contextily as ctx
 from shapely.geometry import box
+from analysis.fitting import model_with_known_v, model_without_v_term
 
-from analysis.depr_curve_fit import model_with_known_v, model_without_v_term
+#from analysis.depr_curve_fit import model_with_known_v, model_without_v_term
 import numpy as np
 df = pd.read_pickle(r'output\velocity_corrected.pkl')
 
