@@ -8,7 +8,10 @@ import numpy as np
 import Coordinate as geo
 import matplotlib.pyplot as plt
 
+
+# Load data
 country = "Thailand"
+station = "PHUK"
 class StationDataProcessor:
 
     def __init__(self, input_directory, output_directory):

@@ -6,9 +6,11 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+import main as mn
 
-country = "Thailand"
-
+# Load data
+country = mn.country
+station = mn.station
 
 directory = f"../processed_data/{country}/PCA"
 

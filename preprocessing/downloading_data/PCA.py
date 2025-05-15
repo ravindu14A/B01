@@ -2,12 +2,16 @@ from sklearn.decomposition import PCA
 import os
 import pickle
 import pandas as pd
+import main as mn
 
-country = "Malaysia"
+# Load data
+country = mn.country
+station = mn.station
 directory = f"../processed_data/{country}/Filtered_cm_normalised"
 directory_out = f"../processed_data/{country}/PCA"
 start_date = pd.to_datetime("2004-12-30")
 
+trans = {}
 # Clear the output directory
 for filename in os.listdir(directory_out):
     file_path = os.path.join(directory_out, filename)
@@ -38,6 +42,10 @@ for filename in os.listdir(directory):
         pca.fit(X_train)
         X_pca = pca.transform(X_all)
 
+        P = pca.components_
+
+        trans[f"{filename[:-4]}"] = P
+
         # Save output
         out_df = pd.DataFrame({
             'date': df['date'].values,
@@ -47,3 +55,4 @@ for filename in os.listdir(directory):
 
         out_path = os.path.join(directory_out, filename)
         out_df.to_pickle(out_path)
+

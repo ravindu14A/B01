@@ -1,12 +1,13 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import main as mn
 
-
-country = "Thailand"
-station = "PHUK"
+# Load data
+country = mn.country
+station = mn.station
 
 # Load the DataFrame from the .pkl file
-df = pd.read_pickle(f"../processed_data/{country}/PCA/{station}.pkl")
+df = pd.read_pickle(f"../processed_data/{country}/Final/{station}.pkl")
 # Show all rows
 pd.set_option('display.max_rows', None)
 
@@ -28,14 +29,14 @@ fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)  # 3 subplots stac
 
 # Plot Latitude vs. Date
 axes[0].plot(df["date"], df["lat"], marker="o", linestyle="-", markersize=1, label="Latitude", color = "blue")
-axes[0].set_ylabel("North_South (cm)")
+axes[0].set_ylabel("North_South (cm) / Lat")
 axes[0].legend()
 axes[0].grid(True)
 axes[0].set_title(f"{station} Data Over Time", fontsize=14, fontweight="bold")
 
 # Plot Longitude vs. Date
 axes[1].plot(df["date"], df["long"], marker="o", linestyle="-", markersize=1, label="Longitude", color="green")
-axes[1].set_ylabel("East_West (cm)")
+axes[1].set_ylabel("East_West (cm) / Long")
 axes[1].legend()
 axes[1].grid(True)
 
