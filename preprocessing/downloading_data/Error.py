@@ -14,7 +14,7 @@ country = mn.country
 station = mn.station
 directory_out = f"../processed_data/{country}/Error"
 filepath = f"../processed_data/{country}/Raw_pickle/{station}.pkl"
-N = 1000
+N = 100
 n_tsd = 2.4477
 confidence = 1.96 #95% confidence
 
@@ -243,9 +243,16 @@ y_pred1= y_preds[lower[1]]
 y_pred2=y_preds[upper[1]]
 
 plt.figure(figsize=(15, 7))
-plt.errorbar(predictions[mn[1]], df_fit["lat"].iloc[0], xerr= std_dev*confidence, fmt=' ', ecolor='black', capsize=5)
+x_err = np.array([[u-m],[m-l]])
+plt.errorbar(predictions[mn[1]], df_fit["lat"].iloc[0], xerr= x_err, fmt=' ', ecolor='black', capsize=5)
+plt.text(root_years-40, y_point+5,
+         f"Uncertainty: +/- {np.round(std_dev*confidence, 1)}",
+         fontsize=8, color='black')
 plt.scatter(predictions[mn[1]],df_fit["lat"].iloc[0] , color='blue', zorder=5, label="Predicted Intersection")
 plt.axhline(df_fit["lat"].iloc[0], color='black', linestyle="--", linewidth=1, label='Initial Position')
+plt.text(root_years-5, y_point -12,
+         f"Predicted EQ\n~Year {int(start_date.year + root / 365.25)}",
+         fontsize=10, color='blue')
 plt.fill_between(T_years, y_lfit, y_ufit, color='red', alpha=0.3, label='95% CI')
 plt.plot(T_years, y_mfit, 'b-', label='Mean')
 plt.plot(df_years, df2['lat'], label='Original Data', color='green')
