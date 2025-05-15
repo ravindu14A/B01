@@ -6,11 +6,11 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-import main as mn
+# import main as mn
 
 # Load data
-country = mn.country
-station = mn.station
+country = "Thailand"
+
 
 directory = f"../processed_data/{country}/PCA"
 
@@ -41,8 +41,8 @@ def correct_discontinuities(df, column='lat', threshold=5, start_date=None, max_
 t_treshold = [3,0.8,1,1,1,1,2,1,1,1,1,1,1,1,1,1]
 t_max = [10,100,5,200,10,5,350,5,5,1,5,5,5,5,50,1]
 
-m_treshold = [3,0.8,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-m_max = [10,100,5,200,10,5,10,5,5,1,5,5,5,5,50,1]
+m_treshold = [3,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+m_max = [10,100,5,200,10,5,10,30,5,1,5,5,100,5,50,100]
 for num, filename in enumerate(os.listdir(directory)):
     if filename.endswith('.pkl'):
         filepath = os.path.join(directory, filename)

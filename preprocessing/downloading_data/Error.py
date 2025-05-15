@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit, bisect
-import main as mn
+# import main as mn
 
 # Load data
-country = mn.country
-station = mn.station
-directory_out = f"../processed_data/{country}/Error"
+country = "Malaysia"
+station = "ARAU"
+
 filepath = f"../processed_data/{country}/Raw_pickle/{station}.pkl"
-N = 100
+N = 1000
 n_tsd = 2.4477
 confidence = 1.96 #95% confidence
 
@@ -144,7 +144,7 @@ for i in range(N):
     #     print(f"{name} = {val:.6f}")
 
 
-    years = 400
+    years = 250
     safe_end = round(years * 365.25)
     T = np.arange(start_day1, safe_end, 5)
     y_fit = model_func(T, *popt)
@@ -243,7 +243,7 @@ y_pred1= y_preds[lower[1]]
 y_pred2=y_preds[upper[1]]
 
 plt.figure(figsize=(15, 7))
-x_err = np.array([[u-m],[m-l]])
+x_err = np.array([[m-l],[u-m]])
 plt.errorbar(predictions[mn[1]], df_fit["lat"].iloc[0], xerr= x_err, fmt=' ', ecolor='black', capsize=5)
 plt.text(root_years-40, y_point+5,
          f"Uncertainty: +/- {np.round(std_dev*confidence, 1)}",
@@ -264,5 +264,5 @@ plt.title(f'{station} - Earthquake Prediction - Reference: {start_date.date()}')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.savefig("Prediction.png")
+plt.savefig(f"Prediction_{country}_{station}.png")
 plt.show()

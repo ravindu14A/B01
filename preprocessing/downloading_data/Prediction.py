@@ -4,12 +4,11 @@ from scipy.optimize import curve_fit, bisect
 import pickle
 import pandas as pd
 import matplotlib.pyplot as plt
-import Error as Er
-import main as mn
+# import main as mn
 
 # Load data
-country = mn.country
-station = mn.station
+country = "Thailand"
+station = "PHKT"
 filepath = f"../processed_data/{country}/Final/{station}.pkl"
 
 with open(filepath, 'rb') as f:
@@ -41,25 +40,25 @@ start_day1 = df_fit["days_from_ref"].iloc[0]
 t_data = df_fit['days_from_ref'].values
 y_data = df_fit['lat'].values
 
-def model_func(t, A, B, c1, c2, d):
+def model_func(t,A, B,c1, c2, d):
     return A * np.exp(-c1 * (t - start_day1)) + B * np.exp(-c2 * (t - start_day1)) + d + slope_per_day * (t - start_day1)
 
 popt, pcov = curve_fit(model_func, t_data, y_data)
-A, B, c1, c2, d = popt
+
 param_names = ['A', 'B', 'c1', 'c2', 'd']
 print("\nCurve fit parameters:")
 for name, val in zip(param_names, popt):
     print(f"{name} = {val:.6f}")
 
 # === Prediction & Intersection ===
-years = 360
+years = 400
 safe_end = round(years * 365.25)
 T = np.arange(start_day1, safe_end, 5)
 y_fit = model_func(T, *popt)
 
 
 def f(t):
-    return model_func(t, *popt, v) - df_fit["lat"].iloc[0]
+    return model_func(t, *popt) - df_fit["lat"].iloc[0]
 
 # === Plotting ===
 plt.figure(figsize=(12, 6))
@@ -82,9 +81,6 @@ try:
 except Exception as e:
     print("Adjust bisection settings:", e)
 
-y_lfit = model_func(T, *Er.l_params)
-y_ufit = model_func(T, *Er.u_params)
-y_mfit = model_func(T, *Er.m_params)
 
 # === Plot All Data and Fits ===
 T_years = T / 365.25

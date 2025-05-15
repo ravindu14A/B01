@@ -6,8 +6,8 @@ from pyproj import Geod
 import main as mn
 
 # Load data
-country = mn.country
-station = mn.station
+country = "Malaysia"
+station = "ARAU"
 geod = Geod(ellps="WGS84")
 
 def get_displacement_mm(lat0, lon0, lat, lon):

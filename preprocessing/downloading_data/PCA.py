@@ -2,11 +2,11 @@ from sklearn.decomposition import PCA
 import os
 import pickle
 import pandas as pd
-import main as mn
+# import main as mn
 
 # Load data
-country = mn.country
-station = mn.station
+country = "Malaysia"
+
 directory = f"../processed_data/{country}/Filtered_cm_normalised"
 directory_out = f"../processed_data/{country}/PCA"
 start_date = pd.to_datetime("2004-12-30")
