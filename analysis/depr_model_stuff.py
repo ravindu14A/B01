@@ -17,11 +17,13 @@ def find_curve_for_station(df, station, column):
 	# 2. Identify time window
 	start_date = df_station['date'].min()
 	quake_date = pd.Timestamp("2004-12-26")
-	cutoff_date = quake_date - pd.Timedelta(days=1)
+	cutoff_date = quake_date #there is not data for any station on that date so its okay to do it like this 
 
 	# 3. Estimate velocity via linear regression
 	v, _ = fit_linear_trend(df, station, column, start_date, cutoff_date)
 
+
+	
 	# 4. Fit full decay model up to and including the earthquake
 	popt, pcov, ref_date = fit_exponential_decay(
 		df_station,

@@ -1,9 +1,9 @@
 import numpy as np
-#import requests
-#from bs4 import BeautifulSoup
+import requests
+from bs4 import BeautifulSoup
 import pandas as pd
 
-'''def plate_motion_api(lat, lon, h):#this is not too slow for only all stations
+def plate_motion_api(lat, lon, h):#this is not too slow for only all stations
 	url = "https://www.unavco.org/software/geodetic-utilities/plate-motion-calculator/plate-motion/model"
 	d_lat = int(lat)
 	m_lat = int((lat - d_lat) * 60)
@@ -59,7 +59,8 @@ import pandas as pd
 		return north_velocity, east_velocity
 	else:
 		raise ValueError("Could not find enough velocity data in the page.")
-'''
+
+
 
 def euler_vector(pole_lat, pole_lon, omega_deg_per_myr, clockwise=True):
 	# Convert omega to radians per year
@@ -131,6 +132,8 @@ def apply_velocity_correction(df):
 		ref_date = group['date'].iloc[0]
 		vn = velocity_dict[station]['vn']
 		ve = velocity_dict[station]['ve']
+
+		print(vn, ve, station)
 		
 		group['delta_years'] = (group['date'] - ref_date).dt.total_seconds() / (365.25 * 24 * 3600)
 		group['d_north_mm'] = group['d_north_mm'] - (vn * group['delta_years'])

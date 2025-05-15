@@ -106,7 +106,7 @@ def removeDuplicates(df):
 	#print(df[(df['date'] == pd.Timestamp('2000-01-04')) & (df['station'] == 'NTUS')])
 	return df
 
-from geo_utils.geo_utils import xyz_to_geodetic, displacement
+from utils.geo_utils import xyz_to_geodetic, displacement
 
 def addLatLonHeight(df):
 	new_cols = df.apply(lambda row: xyz_to_geodetic(row['x'], row['y'], row['z']), axis=1)
@@ -114,8 +114,10 @@ def addLatLonHeight(df):
 
 def addRelativeDisplacementmm(df):
 	for station, group in df.groupby("station"):
+
 		lat1, lon1, h1 = group.iloc[0][["lat", "lon", "h"]]
 		xyz1 = list(group.iloc[0][['x','y','z']])
+
 		d_north, d_east = zip(*group.apply(lambda row: displacement(lat1, lon1, row["lat"], row["lon"], xyz1, [row['x'],row['y'],row['z']]), axis=1))
 		d_up = (group["h"] - h1) * 1000  # in mm
 
@@ -124,10 +126,50 @@ def addRelativeDisplacementmm(df):
 		df.loc[group.index, "d_up_mm"] = d_up
 	return df
 
+def convert_xyz_cov_to_enu(df):
+	"""
+	Convert the 'xyz_covariance' (3x3 matrix in m²) in ECEF coordinates 
+	to ENU covariance (in mm²) for each row using corresponding 'lat' and 'lon'.
+
+	Adds a new column 'enu_covariance_mm2' with the resulting 3x3 matrix.
+	This function modifies the DataFrame in-place and also returns it.
+	"""
+	def rotation_matrix_ecef_to_enu(lat_deg, lon_deg):
+		# Convert lat/lon from degrees to radians
+		lat = np.radians(lat_deg)
+		lon = np.radians(lon_deg)
+
+		# Rotation matrix from ECEF to ENU
+		R = np.array([
+			[-np.sin(lon),              np.cos(lon),              0],
+			[-np.sin(lat)*np.cos(lon), -np.sin(lat)*np.sin(lon), np.cos(lat)],
+			[ np.cos(lat)*np.cos(lon),  np.cos(lat)*np.sin(lon), np.sin(lat)]
+		])
+		return R
+
+	def transform_covariance(row):
+		cov_xyz = np.array(row['xyz_covariance'])
+		R = rotation_matrix_ecef_to_enu(row['lat'], row['lon'])
+
+		# Rotate covariance to ENU frame
+		cov_enu = R @ cov_xyz @ R.T
+
+		# Convert from m² to mm²
+		cov_enu_mm2 = cov_enu * 1e6
+
+		return cov_enu_mm2
+
+	# Apply to each row and store new column
+	df['enu_covariance_mm2'] = df.apply(transform_covariance, axis=1)
+
+	return df
+
+
 
 def generatePreprocessedDF():
 	df = readAllFiles()
 	removeDuplicates(df)
 	addLatLonHeight(df)
 	addRelativeDisplacementmm(df)
+	convert_xyz_cov_to_enu(df)
 	return df

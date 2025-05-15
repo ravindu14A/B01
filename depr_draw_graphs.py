@@ -5,12 +5,14 @@ import geopandas as gpd
 import contextily as ctx
 from shapely.geometry import box
 
+from analysis.curve_fit import model_with_known_v
+
 df = pd.read_pickle(r'output\velocity_corrected.pkl')
 
 #print(df[df['station']=="PHUK"][["date"]].to_numpy())
 
 
-def plot_displacement_for_station(df, station_name):
+def plot_displacement_for_station(df, station_name): # dispalcement north, east, height in mm (v corrected depends on given df)
 	# Filter DataFrame by the station name
 	station_data = df[df['station'] == station_name].copy()
 
@@ -54,7 +56,7 @@ def plot_displacement_for_station(df, station_name):
 	plt.tight_layout()
 	plt.show()
 
-def scatterplot(df, station_name):
+def scatterplot_ne(df, station_name): # east vs west 
 	# Filter and copy data
 	station_data = df[df['station'] == station_name].copy()
 
@@ -181,10 +183,56 @@ def plot_earthquakes_on_map(df: pd.DataFrame):
 	plt.tight_layout()
 	plt.show()
 
+
+def plot_column_for_station(df, station_name, column, v=None, popt=None, ref_date=None):
+	# Filter DataFrame by station
+	station_data = df[df['station'] == station_name].copy()
+	station_data['date'] = pd.to_datetime(station_data['date'])
+
+	# Plot setup
+	fig, ax = plt.subplots(figsize=(12, 5))
+	ax.plot(station_data['date'], station_data[column], color='b', linewidth=1, label='Observed')
+
+	# Plot model if parameters provided
+	if popt is not None and ref_date is not None:
+		quake_date = pd.Timestamp("2004-12-26")
+		end_model_date = quake_date + pd.DateOffset(years=100)
+
+		# Generate daily dates from quake_date to 200 years after
+		model_dates = pd.date_range(start=quake_date, end=end_model_date, freq='D')
+		x_model = (model_dates - ref_date).days
+		y_model = model_with_known_v(x_model, *popt, v)
+
+		ax.plot(model_dates, y_model, color='orange', linestyle='--', linewidth=2, label='Fitted Model (post-2004)')
+
+	# Set Y-axis limit to 100mm
+	#ax.set_ylim(df[df['station']==station_name][column].min(),df[df['station']==station_name][column].max())  # Limit Y-axis to 100mm
+	ax.set_ylim(top = df[df['station']==station_name][column].max(), bottom=-500)
+	# Labels and formatting
+	ax.set_ylabel(column.replace('d_', '').replace('_mm', '').capitalize() + ' (mm)')
+	ax.set_title(f"{column} Displacement for Station {station_name}")
+	ax.grid(True)
+
+	# Earthquake vertical lines
+	df_earthquakes = pd.read_pickle(r'raw_data\earthquakes_records')
+	if not df_earthquakes.empty:
+		for date in df_earthquakes['date']:
+			ax.axvline(date, color='k', linestyle='--', linewidth=1)
+
+	# Format x-axis as years
+	ax.xaxis.set_major_locator(mdates.YearLocator())
+	ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+	ax.set_xlabel('Date')
+	ax.legend()
+
+	plt.tight_layout()
+	plt.show()
+
+
 def main():
 	stationname = "PHUK"
 	plot_displacement_for_station(df, stationname)  # Replace "NTUS" with your desired station name
-	scatterplot(df,stationname)
+	scatterplot_ne(df,stationname)
 	plot_stations_on_map(df,['ARAU','PHUK','PHKT'])
 
 	df_earthquakes = pd.read_pickle(r'raw_data\earthquakes_records')
