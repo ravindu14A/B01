@@ -86,6 +86,7 @@ for filename in os.listdir(directory):
         filepath1 = os.path.join(directory1, filename)
 
         with open(filepath1, 'rb') as f:
+
             data1 = pickle.load(f)
             df1 = pd.DataFrame(data1)
 
@@ -93,7 +94,12 @@ for filename in os.listdir(directory):
             long = df1["long"][0]
             alt = df1["alt"][0]
 
-            North, East = plate_motion_api(np.degrees(lat), np.degrees(long), 0)
+            North, East = plate_motion_api(np.degrees(lat), np.degrees(long), alt)
+            if filename == "PHUK.pkl":
+                North = -0.55  # cm/year
+                East = 2.9  # cm/year
+
+            print(f"station = {filename}, North = {North}, East = {East}")
 
             North = North / 365.25
             East = East / 365.25

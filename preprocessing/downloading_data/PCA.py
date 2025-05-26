@@ -5,11 +5,12 @@ import pandas as pd
 # import main as mn
 
 # Load data
-country = "Malaysia"
+country = "Thailand"
 
 directory = f"../processed_data/{country}/Filtered_cm_normalised"
 directory_out = f"../processed_data/{country}/PCA"
 start_date = pd.to_datetime("2004-12-30")
+end_date = pd.to_datetime("2026-12-30")
 
 trans = {}
 # Clear the output directory
@@ -28,7 +29,7 @@ for filename in os.listdir(directory):
             df = pd.DataFrame(data)
 
         # Filter by date
-        df_subset = df[df['date'] >= start_date]
+        df_subset = df[(df['date'] > start_date) & (df['date'] < end_date)]
         if df_subset.empty:
             print(f"Skipping {filename}: no data after {start_date.date()}")
             continue
@@ -44,7 +45,8 @@ for filename in os.listdir(directory):
 
         P = pca.components_
 
-        trans[f"{filename[:-4]}"] = P
+
+        trans[f"{filename[:-4]}"] = P[0]
 
         # Save output
         out_df = pd.DataFrame({
@@ -56,3 +58,4 @@ for filename in os.listdir(directory):
         out_path = os.path.join(directory_out, filename)
         out_df.to_pickle(out_path)
 
+print(trans["PHUK"])

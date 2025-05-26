@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 # Load data
 country = "Malaysia"
-station = "ARAU"
+
 class StationDataProcessor:
 
     def __init__(self, input_directory, output_directory):

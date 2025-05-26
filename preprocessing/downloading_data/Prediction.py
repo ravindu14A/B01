@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 # import main as mn
 
 # Load data
-country = "Thailand"
-station = "PHKT"
+country = "Malaysia"
+station = "IPOH"
 filepath = f"../processed_data/{country}/Final/{station}.pkl"
+years = 1000
 
 with open(filepath, 'rb') as f:
     data = pickle.load(f)
@@ -43,7 +44,7 @@ y_data = df_fit['lat'].values
 def model_func(t,A, B,c1, c2, d):
     return A * np.exp(-c1 * (t - start_day1)) + B * np.exp(-c2 * (t - start_day1)) + d + slope_per_day * (t - start_day1)
 
-popt, pcov = curve_fit(model_func, t_data, y_data)
+popt, pcov = curve_fit(model_func, t_data, y_data, maxfev = 10000)
 
 param_names = ['A', 'B', 'c1', 'c2', 'd']
 print("\nCurve fit parameters:")
@@ -51,7 +52,7 @@ for name, val in zip(param_names, popt):
     print(f"{name} = {val:.6f}")
 
 # === Prediction & Intersection ===
-years = 400
+
 safe_end = round(years * 365.25)
 T = np.arange(start_day1, safe_end, 5)
 y_fit = model_func(T, *popt)
@@ -98,6 +99,7 @@ plt.title(f'{station} - Earthquake Prediction since {start_date}')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
+
 plt.show()
 
 
