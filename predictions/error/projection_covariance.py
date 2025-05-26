@@ -1,16 +1,16 @@
 import pickle
 import pandas as pd
-from trash.PCA import yohooo
+from PCA import yohooo
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 # Replace 'your_file.pkl' with the actual file path
-with open(r'../../data/partially_processed/Thailand/PCA\PHUK.pkl', 'rb') as file:
+with open(r'../../data/partially_processed/Thailand/PCA/PHUK.pkl', 'rb') as file:
     data = pickle.load(file)
 
 # Now 'data' contains the object that was saved in the pickle file
-with open(r'../../data/partially_processed/Thailand/Filtered_cm\PHUK.pkl', 'rb') as file:
+with open(r'../../data/partially_processed/Thailand/Filtered_cm/PHUK.pkl', 'rb') as file:
     cov_ARAU = pickle.load(file)
 
 merged_df = pd.merge(data, cov_ARAU[['date', 'covariance matrix']], on='date', how='inner')  # Options: 'inner', 'outer', 'left', 'right'
@@ -94,27 +94,29 @@ for i in range(N):
 
     # Step 2: Convert dates to numeric (e.g., days since first date)
     base_date = dates[0]
-    t_numeric = np.array([(d - base_date).days for d in dates])
+    t_numeric = np.array([(d - base_date).days / 365.0 for d in dates])  # Convert days to years
 
     # Step 3: Fit quadratic function
     def model_func(t, A, B, c1, c2, d):
         return A * np.exp(-c1 * (t - t_numeric[0])) + B * np.exp(-c2 * (t - t_numeric[0])) + d + slope_per_day * (
                     t - t_numeric[0])
 
+
     params, _ = curve_fit(model_func, t_numeric, simulated_datasets[i])
 
     # Step 4: Create future dates (e.g., 30 years = 30*365 days)
-    future_days = 200 * 365
-    t_future_numeric = np.arange(t_numeric[-1] + 1, t_numeric[-1] + future_days + 1)
-    future_dates = [base_date + pd.Timedelta(days=int(d)) for d in t_future_numeric]
+    future_days = 400 * 365
+
+    t_future_numeric = np.arange(t_numeric[-1] + 1, t_numeric[-1] + future_days + 1) / 365.0  # Future in years
+    #future_dates = [base_date + pd.Timedelta(days=int(d)) for d in t_future_numeric]
 
     # Step 5: Predict future values
     future_preds = model_func(t_future_numeric, *params)
-    plt.plot(future_dates, future_preds, label='30-Year Forecast', color='red')
+    plt.plot(t_future_numeric, future_preds, label='30-Year Forecast', color='red')
 
 
 # Step 6: Plot original and predicted
-plt.plot(dates, values, label='Observed', color='blue')
+plt.plot(t_numeric, values, label='Observed', color='blue')
 plt.xlabel("Date")
 plt.ylabel("Value")
 plt.title("Quadratic Fit and 30-Year Forecast")

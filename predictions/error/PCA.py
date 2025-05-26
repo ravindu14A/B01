@@ -22,8 +22,8 @@ def yohooo():
     os.chdir(script_dir)
 
     country = "Thailand"
-    directory = f"../processed_data/{country}/Filtered_cm"
-
+    #directory = f"../data/partially_processed/{country}/Filtered_cm"
+    directory = r"C:\Users\Laura\PycharmProjects_Uni\B01\data\partially_processed\Thailand\Filtered_cm"
 
     for filename in os.listdir(directory):
         if filename.endswith('.pkl'):
