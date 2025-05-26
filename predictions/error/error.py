@@ -1,260 +1,304 @@
-import numpy as np
 import pickle
 import pandas as pd
-import preprocessing.projection.PCA as pc
+from preprocessing.PCA.PCA import pca_fitting
+import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
+from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
-from scipy.optimize import curve_fit, bisect
-import preprocessing.conversion.reading_files as mn
-
-# Load data
-country = mn.country
-station = mn.station
-directory_out = f"../data/{country}/Error"
-filepath = f"../data/partially_processed/{country}/Raw_pickle/{station}.pkl"
-N = 1000
-n_tsd = 2.4477
-confidence = 1.96 #95% confidence
-
-with open(filepath, 'rb') as f:
-    data = pickle.load(f)
-    df = pd.DataFrame(data)
-
-# Process covariance matrices
-covariance_msqr = df["covariance matrix"]
-covariance_cmsqr = covariance_msqr.apply(lambda mat: mat * 1e4)
-covariance_2d = covariance_cmsqr.apply(lambda M: M[:2, :2])
-
-# Apply PCA transformation
-P = pc.trans[f"{station}"]
-covariance_pca_2d = covariance_2d.apply(lambda M: P @ M @ P.T)
-
-# Load PCA coordinates
-df1 = pd.read_pickle(f"../data/final/{country}/{station}.pkl")
-north = df1["lat"].to_numpy()
-east = df1["long"].to_numpy()
-position = df1["lat"].to_numpy()
+from typing import Tuple
 
 
-# Error ellipse plotting function
-def plot_error_ellipse(cov, mean, ax = None, n_std=1.0, **kwargs):
-    vals, vecs = np.linalg.eigh(cov)
-    order = vals.argsort()[::-1]
-    vals = vals[order]
-    vecs = vecs[:, order]
+class TimeSeriesForecaster:
+    """
+    A class for time series analysis with PCA-based covariance processing
+    and Monte Carlo forecasting using exponential decay models.
+    """
 
-    theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
-    width, height = 2 * n_std * np.sqrt(vals)
+    def __init__(self, pca_file_path: str, covariance_file_path: str):
+        """
+        Initialize the forecaster with data file paths.
 
-    ellipse = Ellipse(xy=mean, width=width, height=height, angle=theta, **kwargs)
-    # ax.add_patch(ellipse)
-    std = np.sqrt(vals[0])
-    return n_tsd* std
+        Args:
+            pca_file_path: Path to the PCA pickle file
+            covariance_file_path: Path to the covariance matrix pickle file
+        """
+        self.pca_file_path = pca_file_path
+        self.covariance_file_path = covariance_file_path
+        self.merged_df = None
+        self.slope_per_day = None
+        self.simulated_datasets = None
 
-# Create figure with correct size
-# fig, ax = plt.subplots(figsize=(10, 10))  # Adjust as needed
-standard_deviation = []
-# Plot ellipses and points
-for n, e, cov in zip(north, east, covariance_pca_2d):
-    mean = [n, e]
-    std = plot_error_ellipse(cov, mean, n_std=2, edgecolor='red', facecolor='none')
-    standard_deviation.append(std)
+    def load_data(self) -> pd.DataFrame:
+        """Load and merge the PCA and covariance data."""
+        # Load PCA data
+        with open(self.pca_file_path, 'rb') as file:
+            pca_data = pickle.load(file)
 
+        # Load covariance data
+        with open(self.covariance_file_path, 'rb') as file:
+            cov_data = pickle.load(file)
 
-# Plot all center points
-# ax.scatter(north, east, color='blue', label='Center', s=10)
-# standard_deviation = np.array(standard_deviation)
-# # Format plot
-# ax.set_aspect('equal')
-# ax.set_xlabel('PCA 1 (cm)')
-# ax.set_ylabel('PCA 2 (cm)')
-# ax.set_title('2σ Error Ellipse in PCA Space')
-# ax.legend()
-# ax.grid(True)
+        # Merge datasets
+        self.merged_df = pd.merge(
+            pca_data,
+            cov_data[['date', 'covariance matrix']],
+            on='date',
+            how='inner'
+        )
 
-# plt.show()
+        return self.merged_df
 
-all_samples = []
-np.random.seed(3)
+    @staticmethod
+    def new_covariance(matrix: np.ndarray) -> float:
+        """
+        Process covariance matrix using PCA.
 
-for i in range(N):
-    y_sampled = np.random.normal(loc=position, scale=standard_deviation)
-    # e.g., fit a curve here and store the result
-    all_samples.append(y_sampled)
+        Args:
+            matrix: 3x3 matrix (north, east, up)
 
+        Returns:
+            Single value of interest after PCA processing
+        """
+        slic_matrix = matrix[:2, :2]
+        pca = pca_fitting()
+        pca_var = pca.components_[0]
+        result = pca_var @ slic_matrix @ pca_var.T
+        print(result, pca_var)
+        return result
 
-# fig, axes = plt.subplots(2, 1, figsize=(10, 10), sharex=True)  # 3 subplots stacked
+    @staticmethod
+    def smart_epsilon(x0: np.ndarray) -> np.ndarray:
+        """Calculate smart epsilon for numerical stability."""
+        eps_machine = np.finfo(float).eps
+        return np.sqrt(eps_machine) * np.maximum(np.abs(x0), 1.0)
 
-# Plot Latitude vs. Date
-# axes[0].plot(df["date"],all_samples[0], marker="o", linestyle="-", markersize=1, label="Latitude", color = "blue")
-# axes[0].set_ylabel("North_South (cm) / Lat")
-# axes[0].legend()
-# axes[0].grid(True)
-# axes[0].set_title(f"{station} Data Over Time", fontsize=14, fontweight="bold")
+    def process_covariance_matrices(self):
+        """Process all covariance matrices in the dataset."""
+        if self.merged_df is None:
+            raise ValueError("Data not loaded. Call load_data() first.")
 
-# plt.show()
+        print("Sample covariance matrix:")
+        print(self.merged_df.iloc[0]['covariance matrix'])
 
+        self.merged_df['covariance matrix'] = self.merged_df.apply(
+            lambda row: self.new_covariance(row['covariance matrix']),
+            axis=1
+        )
 
+    def prepare_time_data(self, end_date: str = "2004-12-15"):
+        """
+        Prepare time-based features for analysis.
 
+        Args:
+            end_date: End date for slope estimation subset
+        """
+        if self.merged_df is None:
+            raise ValueError("Data not loaded. Call load_data() first.")
 
-results = []
-for i in range(N):
-    df2 = pd.DataFrame()
-    df2["date"] = df['date']
-    df2["lat"] = all_samples[i]
+        # Convert date to datetime
+        self.merged_df['date'] = pd.to_datetime(self.merged_df['date'])
 
+        # Set reference dates
+        start_date = self.merged_df['date'].iloc[0]
+        end_date = pd.to_datetime(end_date)
 
-    df2['date'] = pd.to_datetime(df2['date'])
-    start_date = df2["date"].iloc[0]
-    end_date = pd.to_datetime("2004-12-15")
-    df2['days_from_ref'] = (df2['date'] - start_date).dt.days
+        # Add numeric time axis
+        self.merged_df['days_from_ref'] = (self.merged_df['date'] - start_date).dt.days
 
-    # === Linear Fit Before Earthquake ===
-    mask = (df2['date'] >= start_date) & (df2['date'] <= end_date)
-    df_subset = df2.loc[mask]
-    X = df_subset['days_from_ref'].values.reshape(-1, 1)
-    y = df_subset['lat'].values
+        return start_date, end_date
 
-    model = LinearRegression()
-    model.fit(X, y)
-    slope_per_day = model.coef_[0]
-    slope_mm_per_year = slope_per_day * 10 * 365
-    # print(f"Slope (cm/year): {slope_per_day}")
+    def estimate_slope(self, end_date: str = "2004-12-15") -> float:
+        """
+        Estimate the linear slope using data up to the specified end date.
 
-    y_pred = model.predict(X)
+        Args:
+            end_date: End date for slope estimation
 
-    # === Post-Earthquake Fit ===
-    df_fit = df2.loc[df['date'] > end_date]
-    start_day1 = df_fit["days_from_ref"].iloc[0]
-    t_data = df_fit['days_from_ref'].values
-    y_data = df_fit['lat'].values
+        Returns:
+            Slope per day
+        """
+        if self.merged_df is None:
+            raise ValueError("Data not loaded. Call load_data() first.")
 
-    def model_func(t, A, B, c1, c2, d):
-        return A * np.exp(-c1 * (t - start_day1)) + B * np.exp(-c2 * (t - start_day1)) + d + slope_per_day * (t - start_day1)
+        end_date = pd.to_datetime(end_date)
 
-    popt, pcov = curve_fit(model_func, t_data, y_data)
-    #A, B, c1, c2, d = popt
+        # Subset data for slope estimation
+        df_subset = self.merged_df[self.merged_df['date'] <= end_date]
 
+        # Prepare features and target
+        X = df_subset['days_from_ref'].values.reshape(-1, 1)
+        y = df_subset['lat'].values
 
-    #param_names = ['A', 'B', 'c1', 'c2', 'd']
-    # print("\nCurve fit parameters:")
-    # for name, val in zip(param_names, popt):
-    #     print(f"{name} = {val:.6f}")
+        # Fit linear regression
+        model = LinearRegression()
+        model.fit(X, y)
+        self.slope_per_day = model.coef_[0]
 
+        # Convert to mm/year for display
+        slope_mm_per_year = self.slope_per_day * 10 * 365
+        print(f"Slope (mm/year): {slope_mm_per_year:.3f}")
 
-    years = 400
-    safe_end = round(years * 365.25)
-    T = np.arange(start_day1, safe_end, 5)
-    y_fit = model_func(T, *popt)
+        return self.slope_per_day
 
-    def f(t):
+    def prepare_monte_carlo(self, start_index: int = 350, n_samples: int = 50):
+        """
+        Prepare Monte Carlo simulation datasets.
 
-        return model_func(t, *popt) - df_fit["lat"].iloc[0]
+        Args:
+            start_index: Starting index for data subset
+            n_samples: Number of Monte Carlo samples
+        """
+        if self.merged_df is None:
+            raise ValueError("Data not loaded. Call load_data() first.")
 
-    # === Plotting ===
-    # plt.figure(figsize=(12, 6))
+        # Subset data
+        self.merged_df = self.merged_df.iloc[start_index:]
 
-    try:
-        root = bisect(f, start_day1+10000, safe_end)
-        root_years = root / 365.25
-        y_point = model_func(root, *popt)
-        #
-        # Mark intersection
-        # plt.scatter(root_years, y_point, color='blue', zorder=5, label="Predicted Intersection")
-        # plt.axhline(df_fit["lat"].iloc[0], color='black', linestyle="--", linewidth=1, label='Initial Lat')
-        # plt.text(root_years + 2, y_point -8,
-        #          f"Predicted EQ\n~Year {int(start_date.year + root / 365.25)}",
-        #          fontsize=10, color='blue')
+        # Extract diagonal values and create covariance matrix
+        diag_vals = self.merged_df['covariance matrix'].values.tolist()
+        D = np.diag(diag_vals) * 10000
 
-        # print(f"\nEarthquake prediction: {root_years:.2f} years after {start_date} "
-        #       f"(~Year {int(start_date.year + root / 365.25)})")
+        print("Covariance matrix shape:", D.shape)
 
-        results.append((y_pred, slope_per_day, root_years, popt))
+        # Get observed values
+        y = self.merged_df['lat'].values
 
-    except Exception as e:
-        print("Adjust bisection settings:", e)
-        plt.plot(T ,f(T), label='Original Data', color='green')
+        # Generate simulated datasets
+        self.simulated_datasets = np.random.multivariate_normal(y, D, size=n_samples)
+
+        return self.simulated_datasets
+
+    def model_func(self, t: np.ndarray, A: float, B: float, c1: float, c2: float, d: float) -> np.ndarray:
+        """
+        Exponential decay model with linear trend.
+
+        Args:
+            t: Time array
+            A, B: Exponential coefficients
+            c1, c2: Decay constants
+            d: Offset
+
+        Returns:
+            Model predictions
+        """
+        if self.slope_per_day is None:
+            raise ValueError("Slope not estimated. Call estimate_slope() first.")
+
+        t_base = self.get_time_numeric()[0]  # First time point
+        return (A * np.exp(-c1 * (t - t_base)) +
+                B * np.exp(-c2 * (t - t_base)) +
+                d + self.slope_per_day * (t - t_base))
+
+    def get_time_numeric(self) -> np.ndarray:
+        """Convert dates to numeric time (years since first date)."""
+        if self.merged_df is None:
+            raise ValueError("Data not loaded.")
+
+        dates = self.merged_df['date'].to_list()
+        base_date = dates[0]
+        return np.array([(d - base_date).days for d in dates])
+
+    def forecast_and_plot(self, forecast_years: int = 30, figsize: Tuple[int, int] = (12, 6)):
+        """
+        Generate forecasts using Monte Carlo simulation and plot results.
+
+        Args:
+            forecast_years: Number of years to forecast
+            figsize: Figure size for plotting
+        """
+        if self.simulated_datasets is None:
+            raise ValueError("Monte Carlo data not prepared. Call prepare_monte_carlo() first.")
+
+        plt.figure(figsize=figsize)
+
+        # Get time data
+        t_numeric = self.get_time_numeric()
+        values = self.merged_df['lat'].values
+
+        # Generate forecasts for each Monte Carlo sample
+        N = len(self.simulated_datasets)
+
+        for i in range(N):
+            try:
+                # Fit model to simulated data
+                params, _ = curve_fit(self.model_func, t_numeric, self.simulated_datasets[i])
+
+                # Create future time points
+                future_days = forecast_years * 365
+                t_future_numeric = np.arange(t_numeric[-1] + 1, t_numeric[-1] + future_days + 1)
+
+                # Generate predictions
+                future_preds = self.model_func(t_future_numeric, *params)
+
+                # Plot (only show label for first forecast line)
+                label = '30-Year Forecast' if i == 0 else None
+                alpha = 0.1 if N > 10 else 0.3
+                plt.plot(t_future_numeric, future_preds,
+                         color='red', alpha=alpha, label=label)
+
+            except Exception as e:
+                print(f"Warning: Failed to fit sample {i}: {e}")
+                continue
+
+        # Plot observed data
+        plt.plot(t_numeric, values, label='Observed', color='blue', linewidth=2)
+
+        # Formatting
+        plt.xlabel("Years since start")
+        plt.ylabel("Latitude")
+        plt.title(f"Exponential Decay Model with {forecast_years}-Year Monte Carlo Forecast")
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
         plt.show()
 
+    def run_full_analysis(self,
+                          end_date: str = "2004-12-15",
+                          start_index: int = 350,
+                          n_samples: int = 50,
+                          forecast_years: int = 30):
+        """
+        Run the complete analysis pipeline.
 
-    # === Plot All Data and Fits ===
-    T_years = T / 365.25
-    df_years = df2['days_from_ref'] / 365.25
-    df_subset_years = df_subset['days_from_ref'] / 365.25
+        Args:
+            end_date: End date for slope estimation
+            start_index: Starting index for Monte Carlo data
+            n_samples: Number of Monte Carlo samples
+            forecast_years: Years to forecast
+        """
+        print("Loading data...")
+        self.load_data()
 
-    # plt.plot(T_years, y_fit, 'r-', label='Fitted Curve')
-    # plt.plot(df_years, df2['lat'], label='Original Data', color='green')
-    # plt.plot(df_subset_years, y_pred, color='red', label='Linear Fit Segment')
-    #
-    # plt.xlabel('Years since reference date')
-    # plt.ylabel('Position (PCA transformed)')
-    # plt.title(f'{station} - Earthquake Prediction (Relative Time)')
-    # plt.legend()
-    # plt.grid(True)
-    # plt.tight_layout()
-    # plt.show()
+        print("Processing covariance matrices...")
+        self.process_covariance_matrices()
 
-y_preds, slope, predictions, parameters = zip(*results)
-y_preds = list(y_preds)
-slope = list(slope)
-predictions = list(predictions)
-parameters = list(parameters)
-values = predictions
-mean = np.mean(values)
-variance = np.var(values)
-std_dev = np.std(values)
-minimum = np.min(values)
-maximum = np.max(values)
-median = np.median(values)
+        print("Preparing time data...")
+        self.prepare_time_data(end_date)
 
-print(f"Earthquake prediction: {mean} +/- {confidence*std_dev} years afer {start_date}")
+        print("Estimating slope...")
+        self.estimate_slope(end_date)
 
+        print("Preparing Monte Carlo simulation...")
+        self.prepare_monte_carlo(start_index, n_samples)
 
-def model_func(v, t, A, B, c1, c2, d):
-    return A * np.exp(-c1 * (t - start_day1)) + B * np.exp(-c2 * (t - start_day1)) + d + v * (
-                t - start_day1)
+        print("Generating forecasts and plotting...")
+        self.forecast_and_plot(forecast_years)
 
-def find_closest(nums, target):
-    closest_index = min(range(len(nums)), key=lambda i: abs(nums[i] - target))
-    return nums[closest_index], closest_index
-
-lower = find_closest(predictions, mean - std_dev*confidence)
-l = lower[0]
-l_params = parameters[lower[1]]
-v_l =slope[lower[1]]
-y_lfit = model_func(v_l, T, *l_params)
+        print("Analysis complete!")
 
 
-upper = find_closest(predictions, mean + std_dev*confidence)
-u = upper[0]
-u_params = parameters[upper[1]]
-v_u =slope[upper[1]]
-y_ufit = model_func(v_u, T, *u_params)
+# Example usage:
+if __name__ == "__main__":
+    # Initialize forecaster
+    forecaster = TimeSeriesForecaster(
+        pca_file_path=r'../../data/partially_processed/Thailand/PCA/PHUK.pkl',
+        covariance_file_path=r'../../data/partially_processed/Thailand/Filtered_cm/PHUK.pkl'
+    )
 
-mn = find_closest(predictions, mean)
-m = mn[0]
-m_params = parameters[mn[1]]
-v_m =slope[mn[1]]
-y_mfit = model_func(v_m, T, *m_params)
-
-y_pred1= y_preds[lower[1]]
-y_pred2=y_preds[upper[1]]
-
-plt.figure(figsize=(15, 7))
-plt.errorbar(predictions[mn[1]], df_fit["lat"].iloc[0], xerr= std_dev*confidence, fmt=' ', ecolor='black', capsize=5)
-plt.scatter(predictions[mn[1]],df_fit["lat"].iloc[0] , color='blue', zorder=5, label="Predicted Intersection")
-plt.axhline(df_fit["lat"].iloc[0], color='black', linestyle="--", linewidth=1, label='Initial Position')
-plt.fill_between(T_years, y_lfit, y_ufit, color='red', alpha=0.3, label='95% CI')
-plt.plot(T_years, y_mfit, 'b-', label='Mean')
-plt.plot(df_years, df2['lat'], label='Original Data', color='green')
-
-
-plt.xlabel('Years since reference date')
-plt.ylabel('PCA Transformed Position (cm)')
-plt.title(f'{station} - Earthquake Prediction - Reference: {start_date.date()}')
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.savefig("Prediction.png")
-plt.show()
+    # Run complete analysis
+    forecaster.run_full_analysis(
+        end_date="2004-12-15",
+        start_index=350,
+        n_samples=50,
+        forecast_years=400
+    )

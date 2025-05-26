@@ -1,16 +1,16 @@
 import pickle
 import pandas as pd
-from PCA import yohooo
+from preprocessing.PCA.PCA import yohooo
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 # Replace 'your_file.pkl' with the actual file path
-with open(r'../../data/partially_processed/Thailand/PCA/PHUK.pkl', 'rb') as file:
+with open(r'../data/partially_processed/Thailand/PCA/PHUK.pkl', 'rb') as file:
     data = pickle.load(file)
 
 # Now 'data' contains the object that was saved in the pickle file
-with open(r'../../data/partially_processed/Thailand/Filtered_cm/PHUK.pkl', 'rb') as file:
+with open(r'../data/partially_processed/Thailand/Filtered_cm/PHUK.pkl', 'rb') as file:
     cov_ARAU = pickle.load(file)
 
 merged_df = pd.merge(data, cov_ARAU[['date', 'covariance matrix']], on='date', how='inner')  # Options: 'inner', 'outer', 'left', 'right'
@@ -25,11 +25,15 @@ def new_covariance(matrix):
     slic_matrix = matrix[:2, :2]
     pca = yohooo()
     pca_var = pca.components_[0]
-    return pca_var @ slic_matrix @ pca_var.T
+    result = pca_var @ slic_matrix @ pca_var.T
+    #print(result, pca_var)
+    return result
 
 def smart_epsilon(x0):
     eps_machine = np.finfo(float).eps
     return np.sqrt(eps_machine) * np.maximum(np.abs(x0), 1.0)
+
+
 print(merged_df.iloc[0]['covariance matrix'])
 merged_df['covariance matrix'] = merged_df.apply(lambda row:new_covariance(row['covariance matrix']), axis=1)
 
@@ -64,17 +68,13 @@ print(f"Slope (mm/year): {slope_mm_per_year:.3f}")
 
 merged_df = merged_df.iloc[350:]
 
-
-
-print(merged_df)
-
 # List of diagonal values
 diag_vals = merged_df['covariance matrix'].values.tolist()
 
 # Create diagonal matrix
 D = np.diag(diag_vals)
 D = D * 10000
-
+print(D)
 y = merged_df['lat'].values
 
 # y: known data points (shape: T)
@@ -108,7 +108,6 @@ for i in range(N):
     future_days = 400 * 365
 
     t_future_numeric = np.arange(t_numeric[-1] + 1, t_numeric[-1] + future_days + 1) / 365.0  # Future in years
-    #future_dates = [base_date + pd.Timedelta(days=int(d)) for d in t_future_numeric]
 
     # Step 5: Predict future values
     future_preds = model_func(t_future_numeric, *params)
