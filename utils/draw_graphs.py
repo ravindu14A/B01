@@ -104,7 +104,7 @@ def plot_stations_on_map(df: pd.DataFrame, station_names: list):
 	# Plotting
 	fig, ax = plt.subplots(figsize=(10, 10))
 	gdf_all.plot(ax=ax, color="lightgray", markersize=10, label="All Stations")
-	gdf_subset.plot(ax=ax, color="red", markersize=30, label="Selected Stations")
+	#gdf_subset.plot(ax=ax, color="red", markersize=30, label="Selected Stations")
 
 	# Label selected stations
 	for x, y, label in zip(gdf_subset.geometry.x, gdf_subset.geometry.y, gdf_subset["station"]):
@@ -185,83 +185,95 @@ def plot_earthquakes_on_map(df: pd.DataFrame):
 	plt.show()
 
 
-def plot_column_for_station(df, station_name, column, v=None, popt=None):
+def plot_column_for_station(df, station_name, column, v=None, popt=None, include_earthquake_lines=False, fit_full_range=False):
 	"""
 	Plots time series data for a specific station and column, with optional model fitting.
-	
-	Parameters:
-	-----------
-	df : pandas.DataFrame
-		DataFrame containing the station data
-	station_name : str
-		Name of the station to plot
-	column : str
-		Column name to plot (e.g., 'd_east_mm', 'pc1')
-	v : float, optional
-		Known velocity parameter for model fitting
-	popt : tuple, optional
-		Fitted parameters for the exponential decay model (c1, m1, c2, m2, d)
-		
-	Notes:
-	------
-	The function assumes 'days_since_eq' is relative to the 2004-12-26 earthquake.
 	"""
+
+	# ======= STYLE CONFIGURATION =======
+	fontsize_title = 24*2
+	fontsize_labels = 20*2
+	fontsize_ticks = 16*2
+	fontsize_legend = 18*2
+
+	linewidth_data = 6
+	linewidth_model = 6
+	linewidth_grid = 3
+	linewidth_spines = 5
+	linewidth_eq_line = 4
+
+	markersize_data = 30  # only used if you enable scatter
+
+	figsize = (16, 8)
+	x_major_tick_spacing_years = 5
+	# ===================================
+
 	# Filter DataFrame by station
 	station_data = df[df['station'] == station_name].copy()
 	station_data['date'] = pd.to_datetime(station_data['date'])
-	
+
 	# Define earthquake date for reference
 	quake_date = pd.Timestamp("2004-12-26")
-	
+
 	# Plot setup
-	fig, ax = plt.subplots(figsize=(12, 5))
-	ax.plot(station_data['date'], station_data[column], color='b', linewidth=1, label='Observed')
-	ax.scatter(station_data['date'], station_data[column], color='red', s=10, label='Data Points')
-	
+	fig, ax = plt.subplots(figsize=figsize)
+	ax.plot(station_data['date'], station_data[column], color='b', linewidth=linewidth_data, label='Observed')
+
 	# Plot model if parameters provided
 	if popt is not None:
-		# Generate model timeline (100 years from earthquake)
-		end_model_date = quake_date + pd.DateOffset(years=100)
-		 
-		# Generate daily dates from earthquake date to end date
+		if fit_full_range:
+			end_model_date = quake_date + pd.DateOffset(years=100)
+		else:
+			post_eq_data = station_data[station_data['date'] > quake_date]
+			if post_eq_data.empty:
+				print("No post-earthquake data available to determine model range.")
+				end_model_date = quake_date + pd.DateOffset(days=1)
+			else:
+				end_model_date = post_eq_data['date'].max()
+
 		model_dates = pd.date_range(start=quake_date, end=end_model_date, freq='D')
-		
-		# Calculate days_since_eq for model dates
 		days_since_eq = np.array([(date - quake_date).days for date in model_dates])
-		
-		# Generate model values
+
 		if v is not None:
 			y_model = model_with_known_v(days_since_eq, *popt, v)
 		else:
 			y_model = model_without_v_term(days_since_eq, *popt)
-		
-		# Plot model
-		ax.plot(model_dates, y_model, color='orange', linestyle='--', linewidth=2, label='Fitted Model (post-2004)')
-	
+
+		ax.plot(model_dates, y_model, color='orange', linestyle='--', linewidth=linewidth_model, label='Fitted Model (post-2004)')
+
 	# Set Y-axis limit
-	bottom_limit = min(-500, station_data[column].min() * 1.1)  # Dynamic lower limit
+	bottom_limit = min(-500, station_data[column].min() * 1.1)
 	ax.set_ylim(bottom=bottom_limit, top=station_data[column].max() * 1.1)
-	ax.set_xlim(-500, 365*300)
+
+	# X-axis limits
+	ax.set_xlim(station_data['date'].min(), station_data['date'].max())
+
 	# Labels and formatting
-	ax.set_ylabel(column.replace('d_', '').replace('_mm', '').capitalize() + ' (mm)')
-	ax.set_title(f"{column} Displacement for Station {station_name}")
-	ax.grid(True)
-	
+	ax.set_ylabel(column.replace('d_', '').replace('_mm', '').capitalize() + ' (mm)', fontsize=fontsize_labels)
+	ax.set_xlabel('Date', fontsize=fontsize_labels)
+	ax.set_title(f"{column} Displacement for Station {station_name}", fontsize=fontsize_title)
+	ax.grid(True, linewidth=linewidth_grid)
+	ax.tick_params(axis='both', which='major', labelsize=fontsize_ticks, width=linewidth_spines, length=6)
+	for spine in ax.spines.values():
+		spine.set_linewidth(linewidth_spines)
+
 	# Earthquake vertical lines
-	try:
-		df_earthquakes = pd.read_pickle(r'raw_data\earthquakes_records')
-		if not df_earthquakes.empty:
-			for date in df_earthquakes['date']:
-				ax.axvline(date, color='k', linestyle='--', linewidth=1)
-	except Exception as e:
-		print(f"Could not load earthquake data: {e}")
-	
-	# Format x-axis as years
-	ax.xaxis.set_major_locator(mdates.YearLocator())
+	if include_earthquake_lines:
+		try:
+			df_earthquakes = pd.read_pickle(r'raw_data\earthquakes_records')
+			if not df_earthquakes.empty:
+				for date in df_earthquakes['date']:
+					ax.axvline(date, color='k', linestyle='--', linewidth=linewidth_eq_line)
+		except Exception as e:
+			print(f"Could not load earthquake data: {e}")
+
+	# Format x-axis
+	ax.xaxis.set_major_locator(mdates.YearLocator(base=x_major_tick_spacing_years))
 	ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-	ax.set_xlabel('Date')
-	ax.legend()
-	
+
+	# Legend
+	ax.legend(fontsize=fontsize_legend)
+
 	plt.tight_layout()
 	plt.show()
 

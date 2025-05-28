@@ -78,9 +78,20 @@ def simplified_model_without_v_term(x, c1, m1, d):
 	return c1 * np.exp(-m1 * x) + d
 
 
-def fit_station_exponential_decay(df: pd.DataFrame, station: str, start_day: int, end_day: int, column_name: str, v: float = None, simplified = False):
+def fit_station_exponential_decay(
+	df: pd.DataFrame,
+	station: str,
+	start_day: int,
+	end_day: int,
+	column_name: str,
+	v: float = None,
+	simplified=False,
+	model_func=None,
+	jac_func=None,
+	initial_guess=None
+):
 	'''
-	Fits an exponential decay model to time series data using `days_since_eq` for a given station and day range.
+	Fits an exponential decay model (or custom model) to time series data using `days_since_eq` for a given station and day range.
 
 	Parameters:
 	-----------
@@ -101,6 +112,18 @@ def fit_station_exponential_decay(df: pd.DataFrame, station: str, start_day: int
 
 	v : float, optional
 		If provided, uses a model with known linear post-event slope `v`. If None, uses a model without a slope term.
+
+	simplified : bool, optional
+		If True, uses a simplified model with fewer parameters.
+
+	model_func : callable, optional
+		Custom model function to use for fitting. If provided, overrides built-in models.
+
+	jac_func : callable, optional
+		Custom Jacobian function to use for fitting. If provided, overrides built-in Jacobians.
+
+	initial_guess : list or ndarray, optional
+		Initial guess for the parameters. If provided, overrides built-in guesses.
 
 	Returns:
 	--------
@@ -128,53 +151,54 @@ def fit_station_exponential_decay(df: pd.DataFrame, station: str, start_day: int
 	x_data = df_filtered['days_since_eq'].values
 	y_data = df_filtered[column_name].values
 
-	# Decide which model to use
-	if not simplified:
-		if v is not None:
-			def fit_func(x, c1, m1, c2, m2, d):
-				return model_with_known_v(x, c1, m1, c2, m2, d, v)
-
-			def fit_jacob(x, c1, m1, c2, m2, d):
-				return jacobian(x, c1, m1, c2, m2, d, v)
-		else:
-			def fit_func(x, c1, m1, c2, m2, d):
-				return model_without_v_term(x, c1, m1, c2, m2, d)
-
-			fit_jacob = None  # No Jacobian if not using v
-		initial_guess = [ 4.46887393e+02,  2.28338188e-04,  1.13055458e+02 , 4.34198176e-03,
--7.15547149e+02]
-
+	# Use custom model if provided
+	if model_func is not None:
+		fit_func = model_func
+		fit_jacob = jac_func
+		guess = initial_guess
 	else:
-		if v is not None:
-			def fit_func(x, c1, m1, d):
-				return simplified_model_with_known_v(x, c1, m1, d, v)
+		# Decide which built-in model to use
+		if not simplified:
+			if v is not None:
+				def fit_func(x, c1, m1, c2, m2, d):
+					return model_with_known_v(x, c1, m1, c2, m2, d, v)
 
-			def fit_jacob(x, c1, m1,  d):
-				return jacobian(x, c1, m1,1,1, d, v)#!!! needs to be changed
+				def fit_jacob(x, c1, m1, c2, m2, d):
+					return jacobian(x, c1, m1, c2, m2, d, v)
+			else:
+				def fit_func(x, c1, m1, c2, m2, d):
+					return model_without_v_term(x, c1, m1, c2, m2, d)
+
+				fit_jacob = None  # No Jacobian if not using v
+			guess = [4.46887393e+02, 2.28338188e-04, 1.13055458e+02, 4.34198176e-03, -7.15547149e+02]
 		else:
-			def fit_func(x, c1, m1,  d):
-				return simplified_model_without_v_term(x, c1, m1,  d)
+			if v is not None:
+				def fit_func(x, c1, m1, d):
+					return simplified_model_with_known_v(x, c1, m1, d, v)
 
-			fit_jacob = None  # No Jacobian if not using v
-		initial_guess = [1, 0.01,-200]
+				def fit_jacob(x, c1, m1, d):
+					return jacobian(x, c1, m1, 1, 1, d, v)  # Placeholder
+			else:
+				def fit_func(x, c1, m1, d):
+					return simplified_model_without_v_term(x, c1, m1, d)
 
+				fit_jacob = None  # No Jacobian if not using v
+			guess = [1, 0.01, -200]
 
+	if initial_guess is not None:
+		guess = initial_guess
 
 	try:
 		popt, pcov = curve_fit(
 			fit_func,
 			x_data,
 			y_data,
-			p0=initial_guess,
+			p0=guess,
 			maxfev=10000,
 			jac=fit_jacob
 		)
-		#print("DEBUG",x_data, y_data)
-		print("in fit popt",popt)
+		#print("in fit popt", popt)
 	except Exception as e:
 		print("Curve fitting failed:", e)
-
 		return None, None
-	
-
 	return popt, pcov

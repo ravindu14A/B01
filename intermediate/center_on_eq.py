@@ -1,5 +1,5 @@
 import pandas as pd
-from analysis.depr_curve_fit import fit_linear_trend
+#from analysis.depr_curve_fit import fit_linear_trend
 from datetime import datetime
 from analysis.fitting import fit_station_linear_trend
 
@@ -116,7 +116,6 @@ def center_days_since_eq(df):
 	reference_date = datetime(2004, 12, 26)
 	
 	# Ensure 'date' column is in datetime format
-	df['date'] = pd.to_datetime(df['date'])
 	
 	# Calculate days relative to the reference date
 	df['days_since_eq'] = (df['date'] - reference_date).dt.days
