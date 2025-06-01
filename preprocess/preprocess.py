@@ -82,7 +82,7 @@ def readAllFiles():
 	filepaths_thailand = getFilePaths(r"raw_data\thailand")
 	filepaths_malaysia = getFilePaths(r"raw_data\malaysia")
 
-	all_filepaths = filepaths_thailand + filepaths_malaysia
+	all_filepaths = filepaths_malaysia + filepaths_thailand
 
 	# generate DF with x,y,z as vector
 	df = pd.DataFrame(columns=["date", "station", "xyz_position", "xyz_covariance"])
@@ -129,9 +129,9 @@ def addRelativeDisplacementmm(df):
 def convert_xyz_cov_to_enu(df):
 	"""
 	Convert the 'xyz_covariance' (3x3 matrix in m²) in ECEF coordinates 
-	to ENU covariance (in mm²) for each row using corresponding 'lat' and 'lon'.
+	to ENU covariance (in cm²) for each row using corresponding 'lat' and 'lon'.
 
-	Adds a new column 'enu_covariance_mm2' with the resulting 3x3 matrix.
+	Adds a new column 'enu_covariance_cm2' with the resulting 3x3 matrix.
 	This function modifies the DataFrame in-place and also returns it.
 	"""
 	def rotation_matrix_ecef_to_enu(lat_deg, lon_deg):
@@ -154,13 +154,13 @@ def convert_xyz_cov_to_enu(df):
 		# Rotate covariance to ENU frame
 		cov_enu = R @ cov_xyz @ R.T
 
-		# Convert from m² to mm²
-		cov_enu_mm2 = cov_enu * 1e6
+		# Convert from m² to cm²
+		cov_enu_cm2 = cov_enu * 1e4
 
-		return cov_enu_mm2
+		return cov_enu_cm2
 
 	# Apply to each row and store new column
-	df['enu_covariance_mm2'] = df.apply(transform_covariance, axis=1)
+	df['enu_covariance_cm2'] = df.apply(transform_covariance, axis=1)
 
 	return df
 

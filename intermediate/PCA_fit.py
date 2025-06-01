@@ -4,53 +4,55 @@ from datetime import datetime
 
 def compute_and_apply_pca_ne_station(df, station_name, max_day=365):
 	"""
-	Computes PCA on North-East displacement data for a station within a time window after the earthquake
-	and applies the projection to the full data for that station.
+	Compute PCA on d_north_mm and d_east_mm for a station within a time window after the earthquake.
+	Then rotate all NE covariance matrices into PC space and store the result in a new column.
 
-	Includes a synthetic point (0, 0) at day 0 to anchor PCA to the known zero-displacement at the earthquake.
-
-	Args:
-		df (pd.DataFrame): DataFrame with 'station', 'days_since_eq', 'd_north_mm', 'd_east_mm' columns.
-		station_name (str): The station to process.
-		max_day (int): Maximum days after the earthquake to include in the PCA fitting window (default: 365).
-
-	Returns:
-		tuple:
-			- df (pd.DataFrame): Original DataFrame with added 'pc1' and 'pc2' columns for the station.
-			- eigenvectors (np.ndarray): 2×2 matrix of PCA eigenvectors.
+	Adds:
+		- pc1, pc2: projection of NE displacement onto PCA basis
+		- pca_covariance_pc_space: 2×2 rotated covariance matrix for each point (in cm²)
 	"""
-	# Filter data within the PCA fitting window
+	import numpy as np
+	import pandas as pd
+
+	# Filter for PCA fitting
 	mask_fit = (
 		(df['station'] == station_name) &
 		(df['days_since_eq'] >= 0) &
 		(df['days_since_eq'] <= max_day)
 	)
 	pca_fit_df = df.loc[mask_fit, ['d_north_mm', 'd_east_mm']].copy()
-	
-	if pca_fit_df.shape[0] <= 1: #!!! idk if this is optimal
+
+	if pca_fit_df.shape[0] <= 1:
 		print(f"Warning: Not enough data for PCA on station '{station_name}'. Skipping.")
 		return df, None
 
-	# Add the known zero point at the earthquake date
-	pca_fit_df.loc[-1] = [0.0, 0.0]  # Add zero displacement point manually
-	pca_fit_df.index = range(len(pca_fit_df))  # Reindex cleanly
+	# Add known zero point
+	pca_fit_df.loc[-1] = [0.0, 0.0]
+	pca_fit_df.index = range(len(pca_fit_df))
 
-	# Compute the covariance matrix
-	X = pca_fit_df[['d_north_mm', 'd_east_mm']].values
+	# PCA eigenvectors
+	X = pca_fit_df.values
 	cov_matrix = (X.T @ X) / (X.shape[0] - 1)
-
-	# Eigen decomposition and sorting
 	eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
-	sorted_indices = np.argsort(eigenvalues)[::-1]
-	eigenvectors = eigenvectors[:, sorted_indices]
+	eigenvectors = eigenvectors[:, np.argsort(eigenvalues)[::-1]]  # sort descending
 
-	# Project the full station data using the PCA basis
+	# Project full station data into PC space
 	mask_station = df['station'] == station_name
 	X_station = df.loc[mask_station, ['d_north_mm', 'd_east_mm']].values
 	components = X_station @ eigenvectors
-
-	# Store projections
 	df.loc[mask_station, 'pc1'] = components[:, 0]
 	df.loc[mask_station, 'pc2'] = components[:, 1]
-	
+
+	# Rotate each row's covariance into PC-space
+	def rotate_cov(row):
+		if isinstance(row['enu_covariance_cm2'], np.ndarray):
+			# Extract NE 2×2 from ENU covariance
+			cov_ne_cm2 = row['enu_covariance_cm2'][:2, :2]
+			cov_pc = eigenvectors.T @ cov_ne_cm2 @ eigenvectors
+			return cov_pc
+		else:
+			return np.full((2, 2), np.nan)
+
+	df.loc[mask_station, 'pca_covariance_pc_space'] = df.loc[mask_station].apply(rotate_cov, axis=1)
+
 	return df, eigenvectors
