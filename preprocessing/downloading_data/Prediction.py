@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 country = "Malaysia"
 station = "IPOH"
 filepath = f"../processed_data/{country}/Final/{station}.pkl"
-years = 1000
+years = 250
 
 with open(filepath, 'rb') as f:
     data = pickle.load(f)

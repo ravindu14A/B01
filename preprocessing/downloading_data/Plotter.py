@@ -2,10 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 country = "Thailand"
-station = "PHUK"
+station = "GETI"
 
 # Load the DataFrame
 df = pd.read_pickle(f"../processed_data/{country}/Filtered_cm/{station}.pkl")
+
 df1 =pd.read_pickle(f"../processed_data/{country}/Filtered_cm_normalised/{station}.pkl")
 # Display settings (optional)
 pd.set_option("display.max_rows", None)

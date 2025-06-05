@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 # import main as mn
 
 # Load data
-country = "Thailand"
+country = "Malaysia"
 
 
 directory = f"../processed_data/{country}/PCA"
@@ -51,7 +51,7 @@ for num, filename in enumerate(os.listdir(directory)):
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
             df = pd.DataFrame(data)
-            corrected = correct_discontinuities(df, column='lat', threshold=t_treshold[num], start_date="2011-12-01", max_days=t_max[num])
+            corrected = correct_discontinuities(df, column='lat', threshold=m_treshold[num], start_date="2011-12-01", max_days=m_max[num])
 
             plt.figure(figsize=(12, 5))
             plt.plot(df['date'], df['lat'], label='Original', color='red', alpha=0.6)
@@ -62,7 +62,7 @@ for num, filename in enumerate(os.listdir(directory)):
             plt.legend()
             plt.grid(True)
             plt.tight_layout()
-            # plt.show()
+            plt.show()
 
         filename = os.path.join(directory_out, f"{filename}")
         corrected.to_pickle(filename)

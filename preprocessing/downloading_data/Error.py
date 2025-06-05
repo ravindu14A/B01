@@ -1,218 +1,197 @@
+import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit, bisect
 import pickle
-import pandas as pd
-import matplotlib.pyplot as plt
-from PCA import trans
-# import main as mn
 
 
-# Load data
-country = "Thailand"
+country = "THAILAND"
 station = "PHUK"
-N = 1000
-bar = 115
-follow = 0
-years = 350
-std_n = 1.96
-filepath = f"../processed_data/{country}/Filtered_cm/{station}.pkl"
-with open(filepath, 'rb') as f:
-    data = pickle.load(f)
-    df = pd.DataFrame(data)
-    tod_covariance = df["covariance matrix"].apply(lambda m: m[:2, :2])
-    tod_covariance = tod_covariance.rename("covariance matrix").to_frame()
-    tod_covariance["covariance matrix"] = tod_covariance["covariance matrix"].apply(lambda M: 10000 * M)
 
-    V = trans[station]
-    tod_covariance_pca = tod_covariance["covariance matrix"].apply(lambda S: V.T @ S @ V)
+####----Settings----####
+N= 50
+years_predict = 250
+confidence = 1.96
+offset = 60
 
+####----Processing----####
+PCA = pd.read_pickle(f"../processed_data/{country}/Final/PCA.pkl")
+t_fit = np.arange(50, int(years_predict * 365.25) , 7)
+v = PCA[station]
 
-#standard deviation
-standard_deviations = []
-for A in tod_covariance_pca:
-    eigenvalues, _ = np.linalg.eig(A)
+data_df = pd.read_pickle(f"../processed_data/{country}/Final/{station}.pkl")
+data_df = data_df.drop(columns=['long'])
+data_df = data_df.rename(columns={'lat': 'pos'})
+# Convert 'date' column to datetime
+data_df['date'] = pd.to_datetime(data_df['date'])
 
-    # Get the largest eigenvalue
-    largest = np.max(eigenvalues)
+# Define reference date
+quake_date = pd.to_datetime('2004-11-26')
 
+# Find the closest date in the column
+data_df['date'] = pd.to_datetime(data_df['date']).dt.normalize()
+quake_date = pd.to_datetime(quake_date).normalize()
 
+# Get the index of the last date before quake_date
+mask = data_df['date'] < quake_date
+quake_date = data_df.loc[mask].iloc[-1]['date']
+quake_pos = data_df.loc[data_df['date'] == quake_date, 'pos'].values[0]
 
-    standard_deviations.append(np.sqrt(largest))
+data_df["pos"] = data_df["pos"].apply(lambda x: x-quake_pos)
 
+# Create 'days' column as difference from reference
+data_df['days'] = (data_df['date'] - quake_date).dt.days
+origianl_df = data_df.copy()
+cov_df = pd.read_pickle(f"../processed_data/{country}/Filtered_cm_normalised/{station}.pkl")
+cov_df["cov_2D"] = cov_df["covariance matrix"].apply(lambda x: x[:2, :2])
 
-standard_deviations = pd.DataFrame({"standard deviation": standard_deviations})
-
-
-
-filepath = f"../processed_data/{country}/Final/{station}.pkl"
-with open(filepath, 'rb') as f:
-    data = pickle.load(f)
-    df = pd.DataFrame(data)
-    start_date = df["date"].iloc[0]
-    end_date = pd.to_datetime("2004-10-01")
-
-
-    df1 = pd.DataFrame(data)
-    df1['date'] = pd.to_datetime(df['date'])
-    mask = (df1['date'] >= start_date) & (df1['date'] <= end_date)
-    df1_subset = df1.loc[mask]
-    df1_fit = df1.loc[df['date'] > end_date]
-
+cov_df["var"] = cov_df["cov_2D"].apply(lambda x: v.T @ x @ v)
+data_df["var"] = cov_df["var"].apply(lambda x: x*10000)
 
 
 predictions = []
-parameters = []
-slope = []
-np.random.seed(2)
-for i in range(N):
-    samples = np.random.normal(loc=df1["lat"], scale=standard_deviations["standard deviation"])
+coefs = []
+slopes = []
 
-    # Save to new column in df1
-    df["lat"] = samples
-    df['date'] = pd.to_datetime(df['date'])
-    df['days_from_ref'] = (df['date'] - start_date).dt.days
+means = data_df["pos"].values           # shape (n,)
+stds = np.sqrt(data_df["var"].values)   # convert variance to std dev
+n = len(data_df)
+np.random.seed(1)
+samples = np.random.normal(loc=means, scale=stds, size=(N, n))
 
-    # === Linear Fit Before Earthquake ===
-    mask = (df['date'] >= start_date) & (df['date'] <= end_date)
-    df_subset = df.loc[mask]
-    X = df_subset['days_from_ref'].values.reshape(-1, 1)
-    y = df_subset['lat'].values
+for row in samples:
+    data_df["pos"] = row
+    ###---- Linear Fite before Earthquake ----####
+    lin_start_date =pd.to_datetime('2000-12-01')
+    lin_end_date = quake_date
 
 
+    mask = (data_df['date'] >= lin_start_date) & (data_df['date'] <= lin_end_date)
+    df_lin = data_df.loc[mask]
+    X = df_lin['days'].values.reshape(-1, 1)
+    y = df_lin['pos'].values
 
     model = LinearRegression()
     model.fit(X, y)
-    slope_per_day = model.coef_[0] #cm/day
+    slope_per_day = model.coef_[0] # cm per day
     slope_mm_per_year = slope_per_day * 10 * 365
 
+    t_lin = df_lin["days"]
+    y_lin = model.predict(X)
 
-    y_pred = model.predict(X)
+    ####-----Model Fit -----####
+    df_fit = data_df.loc[data_df['date'] > lin_end_date]
 
-    # === Post-Earthquake Fit ===
-    df_fit = df.loc[df['date'] > end_date]
-    start_day1 = df_fit["days_from_ref"].iloc[0]
-    t_data = df_fit['days_from_ref'].values
-    y_data = df_fit['lat'].values
+    t_data = df_fit['days'].values
+    y_data = df_fit['pos'].values
 
-    def model_func(t,A, B,c1, c2, d):
-        return A * np.exp(-c1 * (t - start_day1)) + B * np.exp(-c2 * (t - start_day1)) + d + slope_per_day * (t - start_day1)
+    def model_func(t, A, B, c1, c2, d):
+        return A * np.exp(-c1 * t) + B * np.exp(-c2 * t) + d + slope_per_day * (t - 365.25* offset)
 
     popt, pcov = curve_fit(model_func, t_data, y_data, maxfev = 10000)
 
+    #####---- Prediction ----#####
+    y_fit = model_func(t_fit, *popt)
+    pred_index = np.abs(y_fit).argmin()
+    prediction = t_fit[pred_index]
 
-    # === Prediction & Intersection ===
+    slopes.append(slope_per_day)
+    predictions.append(prediction)
+    coefs.append(popt)
 
-    safe_end = round(years * 365.25)
-    T = np.arange(start_day1, safe_end, 5)
-    y_fit = model_func(T, *popt)
+####-----Preparing Visuals----#####
+def func(t, A, B, c1, c2, d, v):
+    return A * np.exp(-c1 * t) + B * np.exp(-c2 * t) + d + v * (t - 365.25* offset)
 
-
-    def f(t):
-        return model_func(t, *popt) - df_fit["lat"].iloc[0]
-
-
-
-
-
-    try:
-        root = bisect(f, start_day1+2000, safe_end - 1)
-        root_years = root / 365.25
-        y_point = model_func(root, *popt)
-        predictions.append(root_years)
-        parameters.append(popt)
-        slope.append(slope_per_day)
-
-    except Exception as e:
-        print("Adjust bisection settings:", e)
-
-
-def find_closest_index(lst, target):
-    return min(range(len(lst)), key=lambda i: abs(lst[i] - target))
+predictions = np.array(predictions) /365.25
 
 mean = np.mean(predictions)
-std = np.std(predictions)  # By default, uses population std (ddof=0)
-lower = mean - std_n * std
-upper = mean + std_n * std
-
-index_lower = find_closest_index(predictions, lower)
-index_mean = find_closest_index(predictions, mean)
-index_upper = find_closest_index(predictions, upper)
-
-lower_params = parameters[index_lower]
-mean_params = parameters[index_mean]
-upper_params = parameters[index_upper]
-
-lower_v = slope[index_lower]
-mean_v = slope[index_mean]
-upper_v = slope[index_upper]
+std = np.std(predictions)
+confidence_interval = std * confidence
 
 
-
-##====== Func for plottinf error
-def model_func(t, v,  A, B, c1, c2, d):
-    return A * np.exp(-c1 * (t - start_day1)) + B * np.exp(-c2 * (t - start_day1)) + d + v * (t - start_day1)
-
-y_lower = model_func(T, lower_v, *lower_params)
-y_mean = model_func(T, mean_v, *mean_params)
-y_upper = model_func(T, upper_v, *upper_params)
+print("Mean:", mean)
+print("Standard Deviation:", std)
+print("95% Confidence Interval: +/-", confidence_interval)
 
 
-# === Plotting ===
-# === Plot All Data and Fits ===
-T_years = T / 365.25
-df_years = df['days_from_ref'] / 365.25
-df_subset_years = df_subset['days_from_ref'] / 365.25
+mean_closest_index = np.abs((predictions - mean)).argmin()
+low_closest_index = np.abs((predictions - (mean - confidence_interval))).argmin()
+
+high_closest_index = np.abs((predictions - (mean + confidence_interval))).argmin()
+
+mean_fit = func(t_fit, *coefs[mean_closest_index], slopes[mean_closest_index])
+low_fit = func(t_fit, *coefs[low_closest_index],slopes[low_closest_index])
+high_fit = func(t_fit, *coefs[high_closest_index],slopes[high_closest_index])
 
 
+# for i in range(N):  # or however many bad predictions
+#     y_fit = func(t_fit, *coefs[i], slopes[i])
+#     plt.plot(t_fit / 365.25, y_fit, label=f"sample {i}")
+# plt.axhline(0, linestyle='--', color='gray')
 
-plt.figure(figsize=(7, 4.5))
+# plt.title("Predictions for quick check")
+# plt.show()
 
 
-#Mark intersection
+####-----Plotting-----#####
+label_date = quake_date + pd.to_timedelta(int(mean*365.25), unit='D')
+
+plt.figure(figsize=(12,8))
+plt.axhline(y=0, color = "black", linestyle = "--")
+plt.plot(origianl_df["days"]/365.25, origianl_df["pos"], color = "green", label = "Original Data")
+
+plt.plot(t_fit / 365.25, mean_fit, color="blue", label="Mean Prediction")
+
+plt.fill_between(
+    t_fit / 365.25,
+    low_fit,
+    high_fit,
+    color="red",
+    alpha=0.3,
+    label="95% CI"
+)
+
+x_err = [[mean - predictions[low_closest_index]], [predictions[high_closest_index]- mean]]
+
+# Plot the point with horizontal error bar
 plt.errorbar(
-    mean, df1_fit["lat"].iloc[0],
-    xerr=[[mean-lower], [upper-mean]],  # asymmetric horizontal errors
-    fmt='o',  # or '' for no point
-    ecolor='black',
-    capsize=5
+    mean, 0,              # x, y
+    xerr=x_err,                # asymmetric error bar in x-direction
+    fmt='o', color='blue',     # marker style
+    ecolor='black', elinewidth=1, capsize=6
 )
 
-
-plt.scatter(mean, df1_fit["lat"].iloc[0], color='blue', zorder=5, label="Predicted Intersection")
-plt.axhline(df1_fit["lat"].iloc[0], color='black', linestyle="--", linewidth=1, label='Initial Position')
-plt.text(years - bar, df1_fit["lat"].iloc[0] + 1,
-         f"Predicted EQ\n~Year {int(start_date.year + mean)}",
-         fontsize=8, color='blue')
-plt.text(root_years - bar - follow, df1_fit["lat"].iloc[0] + 1,
-         f"Uncertainty: +/- {round(std_n * std,1)}",
-         fontsize=8, color='black')
-
-
-print(f"\nEarthquake prediction: {root_years:.2f} years after {start_date} "
-      f"(~Year {int(start_date.year + root / 365.25)})")
-
-
-
-plt.fill_between(T_years, y_lower, y_upper, color='red', alpha=0.3, label='Confidence Interval')
-plt.plot(T_years, y_mean, 'b-', label='Mean')
-plt.plot(df_subset_years, y_pred, color='red', label='Linear Fit Segment')
-plt.plot(df_years, df1['lat'], label='Processed Data', color='green')
-
-plt.xlabel('Years since reference date')
-plt.ylabel('PCA Transformed Position (cm)')
-plt.title(f'{station} - Earthquake Prediction | Reference Date: {start_date.date()}')
-plt.legend(
-    fontsize=8,           # Adjust legend text size
-    loc='lower right',    # Bottom-right corner
-    frameon=True,         # Optional: box around legend
-    borderpad=0.5,        # Padding inside the box
-    labelspacing=0.4      # Space between legend entries
+plt.text(
+    mean, 2,  # x and y coordinates
+    f"Mean Prediction: {label_date.strftime('%Y-%m-%d')}",
+    ha='center', va='bottom',
+    fontsize=10,
+    color='blue',
+    bbox=dict(facecolor='white', edgecolor='none', alpha=1, pad=1)
 )
-plt.grid(True)
-plt.tight_layout()
-plt.savefig(f"Prediction_{country}_{station}")
+
+plt.text(
+    mean, 5,  # x and y coordinates
+    f"Uncertainty: +/- {confidence_interval}",
+    ha='center', va='bottom',
+    fontsize=8,
+    color='black',
+    bbox=dict(facecolor='white', edgecolor='none', alpha=1, pad=1)
+)
+plt.title(f"Prediction for {station} | Years from 2004 Earthquake on 2004-12-26")
+plt.xlabel("Years - centered at 2004 Earthquake date")
+plt.ylabel("Pos (cm) - centered at 2004 Earthquake position")
+plt.legend()
 plt.show()
+
+
+
+
+
+
+
 
 
 
