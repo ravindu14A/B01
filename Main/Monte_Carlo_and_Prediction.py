@@ -110,7 +110,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
 
     print("Mean:", mean)
     print("Standard Deviation:", std)
-    print("95% Confidence Interval: +/-", confidence_interval)
+    print(f"{confidence_level}% Confidence Interval: +/-", confidence_interval)
 
 
     mean_closest_index = np.abs((predictions - mean)).argmin()
