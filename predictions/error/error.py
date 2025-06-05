@@ -46,6 +46,8 @@ class TimeSeriesForecaster:
             how='inner'
         )
 
+        #self.merged_df = self.correct_discontinuities(self.merged_df, threshold=0.8, start_date="2011-12-01", max_days=50)
+
         return self.merged_df
 
     @staticmethod
@@ -60,10 +62,10 @@ class TimeSeriesForecaster:
             Single value of interest after PCA processing
         """
         slic_matrix = matrix[:2, :2]
-        pca = pca_fitting()
-        pca_var = pca.components_[0]
+        pca_comp = pca_fitting()
+        pca_var = pca_comp[0]
         result = pca_var @ slic_matrix @ pca_var.T
-        print(result, pca_var)
+        print(pca_var)
         return result
 
     @staticmethod
@@ -185,9 +187,32 @@ class TimeSeriesForecaster:
             raise ValueError("Slope not estimated. Call estimate_slope() first.")
 
         t_base = self.get_time_numeric()[0]  # First time point
-        return (A * np.exp(-c1 * (t - t_base)) +
-                B * np.exp(-c2 * (t - t_base)) +
-                d + self.slope_per_day * (t - t_base))
+        return (A * np.exp(-c1 * (t - t_base) * 365.25) +
+                B * np.exp(-c2 * (t - t_base) * 365.25) +
+                d + self.slope_per_day * (t - t_base) *365.25)
+
+    @staticmethod
+    def correct_discontinuities(df, column='lat', threshold=5, start_date=None, max_days=1):
+
+        corrected = df.copy()
+        shifts = np.zeros(len(corrected))
+        dates = corrected['date']
+        if dates.max() > pd.to_datetime(start_date):
+            if start_date is not None:
+                start_index = corrected[dates >= pd.to_datetime(start_date)].index[0]
+
+            else:
+                start_index = 1
+
+            for i in range(start_index, len(corrected)):
+                delta_val = corrected[column].iloc[i] - corrected[column].iloc[i - 1]
+                delta_time = (dates.iloc[i] - dates.iloc[i - 1]).days
+
+                if abs(delta_val) > threshold and delta_time <= max_days:
+                    shifts[i:] -= delta_val
+
+            corrected[column] = corrected[column] + shifts
+        return corrected
 
     def get_time_numeric(self) -> np.ndarray:
         """Convert dates to numeric time (years since first date)."""
@@ -196,7 +221,7 @@ class TimeSeriesForecaster:
 
         dates = self.merged_df['date'].to_list()
         base_date = dates[0]
-        return np.array([(d - base_date).days for d in dates])
+        return np.array([(d - base_date).days for d in dates]) / 365.25
 
     def forecast_and_plot(self, forecast_years: int = 30, figsize: Tuple[int, int] = (12, 6)):
         """
@@ -225,7 +250,8 @@ class TimeSeriesForecaster:
 
                 # Create future time points
                 future_days = forecast_years * 365
-                t_future_numeric = np.arange(t_numeric[-1] + 1, t_numeric[-1] + future_days + 1)
+                t_future_numeric_i = np.arange(t_numeric[-1] + 1, t_numeric[-1] + future_days + 1)
+                t_future_numeric = t_future_numeric_i / 365.25
 
                 # Generate predictions
                 future_preds = self.model_func(t_future_numeric, *params)
@@ -291,8 +317,8 @@ class TimeSeriesForecaster:
 if __name__ == "__main__":
     # Initialize forecaster
     forecaster = TimeSeriesForecaster(
-        pca_file_path=r'../../data/partially_processed/Thailand/PCA/PHUK.pkl',
-        covariance_file_path=r'../../data/partially_processed/Thailand/Filtered_cm/PHUK.pkl'
+        pca_file_path=r'../../data/final/Thailand/PHUK.pkl',
+        covariance_file_path=r'../../data/partially_processed/Thailand/Filtered_cm_normalised/PHUK.pkl'
     )
 
     # Run complete analysis

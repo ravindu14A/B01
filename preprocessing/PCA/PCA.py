@@ -25,7 +25,7 @@ def pca_fitting():
 
     country = "Thailand"
     #directory = f"../data/partially_processed/{country}/Filtered_cm"
-    directory = r"C:\Users\Laura\PycharmProjects_Uni\B01\data\partially_processed\Thailand\Filtered_cm"
+    directory = r"C:\Users\Laura\PycharmProjects_Uni\B01\data\partially_processed\Thailand\Filtered_cm_normalised"
 
     for filename in os.listdir(directory):
         if filename.endswith('.pkl'):
@@ -35,17 +35,21 @@ def pca_fitting():
                 data = pickle.load(f)
                 df = pd.DataFrame(data)
 
-                # Filter by date
-                df_subset = df[(df['date'] > start_date) & (df['date'] < end_date)]
+            # Filter by date
+            df_subset = df[(df['date'] > start_date) & (df['date'] < end_date)]
+            if df_subset.empty:
+                print(f"Skipping {filename}: no data after {start_date.date()}")
+                continue
 
-                # Prepare training and full data
-                X_train = df_subset[['lat', 'long']].to_numpy()
-                X_whatever = df[['lat', 'long']].to_numpy()
+            # Prepare training and full data
+            X_train = df_subset[['lat', 'long']].to_numpy()
+            X_all = df[['lat', 'long']].to_numpy()
 
-                # Fit and transform
-                pca = PCA(n_components=2)
-                pca.fit(X_whatever)
+            # Fit and transform
+            pca = PCA(n_components=2)
+            pca.fit(X_train)
+            X_pca = pca.transform(X_all)
 
             if filename == "PHUK.pkl":
                 os.chdir(original_cwd)
-                return pca
+                return pca.components_
