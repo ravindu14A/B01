@@ -5,7 +5,7 @@ import pandas as pd
 # import main as mn
 
 # Load data
-country = "Malaysia"
+country = "malaysia"
 
 directory = f"./Partially_Processed_Steps/{country}/Filtered_cm_normalised"
 directory_out = f"./Partially_Processed_Steps/{country}/PCA"
@@ -58,5 +58,5 @@ for filename in os.listdir(directory):
         out_path = os.path.join(directory_out, filename)
         out_df.to_pickle(out_path)
 
-with open(f"../Main/Processed_Data_{country}/PCA.pkl", 'wb') as f:
+with open(f"../predictions/Processed_Data_{country}/PCA.pkl", 'wb') as f:
     pickle.dump(trans, f)

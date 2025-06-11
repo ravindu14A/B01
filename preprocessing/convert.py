@@ -6,7 +6,7 @@ from pyproj import Geod
 
 
 # Load data
-country = "Malaysia"
+country = "malaysia"
 
 geod = Geod(ellps="WGS84")
 
@@ -17,9 +17,9 @@ def get_displacement_mm(lat0, lon0, lat, lon):
     d_east = dist_m * np.sin(az_rad) *100 # cm
     return d_north, d_east
 
-directory = f"./Partially_Processed_Steps/{country}/Filtered"
+directory = f"./data/partially_processed_steps/{country}/filtered"
 
-directory_out = f"./Partially_Processed_Steps/{country}/Filtered_cm"
+directory_out = f"./data/partially_processed_steps/{country}/filtered_cm"
 
 for filename in os.listdir(directory_out):
     file_path = os.path.join(directory_out, filename)

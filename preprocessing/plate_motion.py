@@ -7,7 +7,7 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 # Load data
-country = "Thailand"
+country = "thailand"
 
 
 def plate_motion_api(lat, lon, h):  # this is not too slow for only all stations

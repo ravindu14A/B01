@@ -1,8 +1,8 @@
-from Monte_Carlo_and_Prediction import monte
+from .predictions import monte
 
 
 ####----Settings----####
-country = "Thailand"
+country = "thailand"
 station = "ARAU"
 
 N= 50 #Number of samples in Monte Carlo

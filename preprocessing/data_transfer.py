@@ -5,12 +5,12 @@ import re
 import pickle
 import pandas as pd
 import numpy as np
-import Coordinate as geo
+import preprocessing.coordinate as geo
 import matplotlib.pyplot as plt
 
 
 # Load data
-country = "Malaysia"
+country = "malaysia"
 
 class StationDataProcessor:
 
@@ -149,7 +149,7 @@ class StationDataProcessor:
 
     def _write_station_files(self, station_data):
         """
-        Saves station Raw_Data_Thailand as pickle files instead of CSV.
+        Saves station thailand as pickle files instead of CSV.
 
         Example:
             station_data = {
@@ -175,13 +175,14 @@ class StationDataProcessor:
             # print(f"Saved: {filename}")
 
 
-object = StationDataProcessor(f"../Raw_Data_{country}", f"./Partially_Processed_Steps/{country}/Raw_pickle")
+object = StationDataProcessor(f"../data/raw/{country}",
+                              f"./data/partially_processed_steps/{country}/raw_pickle")
 
 object.process_files()
 
 ###Filtering
-directory = f"./Partially_Processed_Steps/{country}/Raw_pickle"
-directory_out = f"./Partially_Processed_Steps/{country}/Filtered"
+directory = f"./data/partially_processed_steps/{country}/raw_pickle"
+directory_out = f"./data/partially_processed_steps/{country}/filtered"
 
 
 threshold= 300/7
@@ -197,7 +198,7 @@ for filename in os.listdir(directory):
         filepath = os.path.join(directory, filename)
         with open(filepath, 'rb') as file:
             data = pickle.load(file)
-            # Do something with `Raw_Data_Thailand`
+            # Do something with `thailand`
             df = pd.DataFrame(data)
 
             entries = len(df["date"])

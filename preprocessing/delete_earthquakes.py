@@ -6,15 +6,15 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-# import main as mn
+
 
 # Load data
-country = "Malaysia"
+country = "malaysia"
 
 
-directory = f"./Partially_Processed_Steps/{country}/PCA"
+directory = f"./data/partially_processed_steps/{country}/PCA"
 
-directory_out = f"../Main/Processed_Data_{country}"
+directory_out = f"../data/processed/{country}"
 
 def correct_discontinuities(df, column='lat', threshold=5, start_date=None, max_days=1):
 
@@ -43,10 +43,10 @@ t_max = [10,100,5,200,10,5,350,5,100,200,5,5,5,5,50,1]
 
 m_treshold = [3,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 m_max = [10,100,5,200,10,5,10,30,5,1,5,5,100,5,50,100,100]
-if country == "Malaysia":
+if country == "malaysia":
     treshold = m_treshold
     max = m_max
-elif country == "Thailand":
+elif country == "thailand":
     treshold = t_treshold
     max = t_max
     
