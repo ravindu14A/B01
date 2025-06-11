@@ -1,107 +1,113 @@
+import matplotlib
+matplotlib.use('TkAgg')  # Open in a window
+
 import zipfile
-import rasterio
-from io import BytesIO
-import matplotlib.pyplot as plt
 import numpy as np
+import rasterio
 from rasterio.windows import Window
+import matplotlib.pyplot as plt
 from matplotlib_scalebar.scalebar import ScaleBar
+from io import BytesIO
 
-# ========== USER CONFIGURATION ==========
-# 1. Define your input file path
-ZIP_FILE_PATH = r"C:\Users\nicov\Downloads\au_dem_9_1.zip"  # <<< CHANGE THIS to your actual file path
+# === 1. File path ===
+ZIP_FILE_PATH = r"C:\Users\nicov\Downloads\au_dem_9_1.zip"
 
-# 2. Set your geographic area of interest (in decimal degrees)
+# === 2. Jakarta bounds ===
 COORDINATE_BOUNDS = {
-    'min_lon': 106.03,  # Western boundary (West Jakarta)
-    'max_lon': 107.93,  # Eastern boundary (East Jakarta)
-    'min_lat': -6.95,   # Southern boundary (South Jakarta)
-    'max_lat': -5.10    # Northern boundary (North Jakarta/Java Sea coast)
+    'min_lon': 114.55,  # West of the city
+    'max_lon': 115.55,  # East of the city
+    'min_lat': 4.45,    # South of the city
+    'max_lat': 5.45     # North of the city
 }
-
-# 3. Set visualization parameters
-MAX_ALTITUDE = 40  # Maximum elevation to display (meters)
-DPI = 1000          # Figure resolution
-
-
-# ========================================
+# === 3. Settings ===
+MAX_ALTITUDE = 100  # meters
+DPI = 400
+PLOT_SIZE = (12, 8)
 
 def latlon_to_pixel(lat, lon, transform):
-    """Convert geographic coordinates to pixel coordinates"""
     col, row = ~transform * (lon, lat)
     return int(row), int(col)
 
-
 try:
     with zipfile.ZipFile(ZIP_FILE_PATH, 'r') as z:
-        # Find the .tif file in the zip archive
         tif_files = [f for f in z.namelist() if f.endswith('.tif')]
         if not tif_files:
-            raise FileNotFoundError("No .tif file found in the zip archive")
+            raise FileNotFoundError("No .tif file found in the ZIP archive.")
 
         with z.open(tif_files[0]) as tif_file:
             with rasterio.open(BytesIO(tif_file.read())) as src:
-                print(f"File opened successfully. CRS: {src.crs}")
+                print(f"Opened DEM file. CRS: {src.crs}")
 
-                # Convert geographic bounds to pixel coordinates
-                try:
-                    row_min, col_min = latlon_to_pixel(
-                        COORDINATE_BOUNDS['max_lat'],
-                        COORDINATE_BOUNDS['min_lon'],
-                        src.transform)
-                    row_max, col_max = latlon_to_pixel(
-                        COORDINATE_BOUNDS['min_lat'],
-                        COORDINATE_BOUNDS['max_lon'],
-                        src.transform)
-                except KeyError as e:
-                    raise KeyError(f"Missing coordinate bound: {e}. Please check COORDINATE_BOUNDS dictionary")
+                # Convert bounds
+                row_min, col_min = latlon_to_pixel(COORDINATE_BOUNDS['max_lat'],
+                                                   COORDINATE_BOUNDS['min_lon'],
+                                                   src.transform)
+                row_max, col_max = latlon_to_pixel(COORDINATE_BOUNDS['min_lat'],
+                                                   COORDINATE_BOUNDS['max_lon'],
+                                                   src.transform)
 
-                # Create window
-                window = Window.from_slices(
-                    (row_min, row_max),
-                    (col_min, col_max)
-                )
-
-                # Read and process
+                row_start, row_stop = sorted([row_min, row_max])
+                col_start, col_stop = sorted([col_min, col_max])
+                window = Window.from_slices((row_start, row_stop), (col_start, col_stop))
                 data = src.read(1, window=window)
-                data_clipped = np.clip(data, 0, MAX_ALTITUDE)
 
-                # Calculate approximate meters per pixel
-                lon_length = 111320 * np.cos(np.radians(np.mean([COORDINATE_BOUNDS['min_lat'], COORDINATE_BOUNDS['max_lat']])))
-                lat_length = 110574
-                dx = (src.transform.a * 111320) / lon_length  # meters per pixel in x
-                dy = (src.transform.e * 110574) / lat_length  # meters per pixel in y
+                # Land elevation map
+                land_data = np.clip(data, 0, MAX_ALTITUDE)
+
+                # Sea mask
+                sea_mask = data <= 0
+
+                # Aspect ratio
+                lat_span = COORDINATE_BOUNDS['max_lat'] - COORDINATE_BOUNDS['min_lat']
+                lon_span = COORDINATE_BOUNDS['max_lon'] - COORDINATE_BOUNDS['min_lon']
+                aspect_ratio = lat_span / lon_span
+
+                # Estimate meters per pixel
+                lat_mean = np.mean([COORDINATE_BOUNDS['min_lat'], COORDINATE_BOUNDS['max_lat']])
+                meters_per_deg_lon = 111320 * np.cos(np.radians(lat_mean))
+                meters_per_deg_lat = 110574
+                dx = abs(src.transform.a) * meters_per_deg_lon
+                dy = abs(src.transform.e) * meters_per_deg_lat
                 meters_per_pixel = (dx + dy) / 2
 
-                # Create figure
-                plt.figure(figsize=(12, 8), dpi=DPI)
-                img = plt.imshow(data_clipped, cmap='terrain', vmin=0, vmax=MAX_ALTITUDE,
-                                extent=[COORDINATE_BOUNDS['min_lon'], COORDINATE_BOUNDS['max_lon'],
-                                        COORDINATE_BOUNDS['min_lat'], COORDINATE_BOUNDS['max_lat']])
+                # === Plot ===
+                plt.figure("Brunei Elevation Map", figsize=PLOT_SIZE, dpi=DPI)
+                manager = plt.get_current_fig_manager()
+                manager.window.wm_geometry("+50+50")
 
-                # Add colorbar
-                cbar = plt.colorbar(label=f'Elevation (0-{MAX_ALTITUDE}m)')
-                cbar.ax.yaxis.set_label_position('left')
+                extent = [COORDINATE_BOUNDS['min_lon'], COORDINATE_BOUNDS['max_lon'],
+                          COORDINATE_BOUNDS['min_lat'], COORDINATE_BOUNDS['max_lat']]
 
-                # Add scale bar (10km)
-                scalebar = ScaleBar(dx=meters_per_pixel, units='m', length_fraction=0.25,
-                                  location='lower right', scale_loc='bottom',
-                                  fixed_value=10000, fixed_units='m',
-                                  frameon=True, color='black')
+                # Plot terrain elevation
+                img = plt.imshow(land_data, cmap='terrain', vmin=0, vmax=MAX_ALTITUDE,
+                                 extent=extent, aspect='auto')
+
+                # Overlay sea as light blue
+                plt.imshow(sea_mask, cmap='Blues', alpha=0.4, extent=extent, aspect='auto')
+
+                plt.gca().set_aspect(1.0 / aspect_ratio)
+
+                # Colorbar
+                cbar = plt.colorbar(img, label='Elevation (m)', shrink=0.7, pad=0.02)
+                cbar.ax.tick_params(labelsize=8)
+                cbar.set_label('Elevation (m)', fontsize=9)
+
+                # Scale bar
+                scalebar = ScaleBar(dx=meters_per_pixel, units='m', length_fraction=0.2,
+                                    location='lower right', scale_loc='bottom',
+                                    fixed_value=10000, fixed_units='m',
+                                    frameon=False, color='black', font_properties={'size': 8})
                 plt.gca().add_artist(scalebar)
 
-                # Format axes
-                plt.title(f"Elevation Map\n"
-                          f"Longitude: {COORDINATE_BOUNDS['min_lon']:.2f}°E to {COORDINATE_BOUNDS['max_lon']:.2f}°E\n"
-                          f"Latitude: {COORDINATE_BOUNDS['min_lat']:.2f}°S to {COORDINATE_BOUNDS['max_lat']:.2f}°S")
-                plt.xlabel("Longitude (degrees East)")
-                plt.ylabel("Latitude (degrees South)")
-                plt.gca().xaxis.set_major_formatter(plt.FormatStrFormatter('%.2f°E'))
-                plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f°S'))
-                plt.xticks(rotation=45)
+                # Labels
+                plt.xlabel("Longitude", fontsize=10)
+                plt.ylabel("Latitude", fontsize=10)
+                plt.xticks(fontsize=8, rotation=45)
+                plt.yticks(fontsize=8)
+                plt.title("Jakarta Elevation Map", fontsize=12, pad=20)
+                plt.grid(False)
                 plt.tight_layout()
                 plt.show()
 
-except FileNotFoundError:
-    print(f"Error: File not found at {ZIP_FILE_PATH}")
 except Exception as e:
-    print(f"An error occurred: {str(e)}")
+    print(f"Error: {e}")

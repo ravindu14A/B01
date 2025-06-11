@@ -1,74 +1,79 @@
 import os
 import pandas as pd
 
-# Define the directory containing the files (current directory)
-directory = '.'
+# Define the directories containing the files
+directories = [
+    r'C:\Users\nicov\PycharmProjects\B01\preprocessing\processed_data\Thailand\Raw_pickle',
+    r'C:\Users\nicov\PycharmProjects\B01\preprocessing\processed_data\Malaysia\Raw_pickle'
+]
 
 # Initialize lists to store the results
 avg_results = []
 all_data_results = []
-stations_with_20plus = []
+stations_with_104plus_samples = []
 
-# Loop through all files in the directory
-for filename in os.listdir(directory):
-    if filename.endswith('.pkl'):  # Check if the file is a .pkl file
-        file_path = os.path.join(directory, filename)
+# Threshold for minimum number of data points
+min_samples_threshold = 104
 
-        # Read the data from the .pkl file
-        try:
-            data = pd.read_pickle(file_path)
+# Loop through both directories
+for directory in directories:
+    for filename in os.listdir(directory):
+        if filename.endswith('.pkl'):
+            file_path = os.path.join(directory, filename)
 
-            # Check if the required columns exist
-            if all(col in data.columns for col in ['lat', 'long']):
-                # Remove the .pkl extension from the file name
-                file_name_without_extension = os.path.splitext(filename)[0]
+            try:
+                data = pd.read_pickle(file_path)
 
-                # Calculate the average latitude and longitude
-                avg_latitude = data['lat'].mean()
-                avg_longitude = data['long'].mean()
+                # Check if the required columns exist
+                if all(col in data.columns for col in ['lat', 'long']):
+                    # Remove the .pkl extension from the file name
+                    station_name = os.path.splitext(filename)[0]
 
-                # Get the number of data points (stations) in this file
-                num_stations = len(data)
+                    # Calculate average coordinates
+                    avg_latitude = data['lat'].mean()
+                    avg_longitude = data['long'].mean()
 
-                # Append to averages results
-                avg_results.append({
-                    'File': file_name_without_extension,
-                    'Average Latitude': avg_latitude,
-                    'Average Longitude': avg_longitude,
-                    'Number of samples': num_stations
-                })
+                    # Number of data points (samples)
+                    num_samples = len(data)
 
-                # Append all raw data with file identifier
-                data['Source File'] = file_name_without_extension
-                all_data_results.append(data[['Source File', 'lat', 'long']])
-
-                # If this file has more than 10 stations, add to special list
-                if num_stations > 20:
-                    stations_with_20plus.append({
-                        'File': file_name_without_extension,
+                    # Append overall averages
+                    avg_results.append({
+                        'File': station_name,
                         'Average Latitude': avg_latitude,
                         'Average Longitude': avg_longitude,
-                        'Number of samples': num_stations
+                        'Number of Samples': num_samples
                     })
 
-        except Exception as e:
-            print(f"Error reading {filename}: {e}")
+                    # Append raw data with file info
+                    data['Source File'] = station_name
+                    all_data_results.append(data[['Source File', 'lat', 'long']])
+
+                    # Collect files with more than the minimum samples
+                    if num_samples > min_samples_threshold:
+                        stations_with_104plus_samples.append({
+                            'File': station_name,
+                            'Average Latitude': avg_latitude,
+                            'Average Longitude': avg_longitude,
+                            'Number of Samples': num_samples
+                        })
+
+            except Exception as e:
+                print(f"Error reading {filename}: {e}")
 
 # Convert the results to DataFrames
 avg_df = pd.DataFrame(avg_results)
 all_data_df = pd.concat(all_data_results, ignore_index=True)
-stations_20plus_df = pd.DataFrame(stations_with_20plus)
+stations_104plus_samples_df = pd.DataFrame(stations_with_104plus_samples)
 
 # Save the results to CSV files
 avg_df.to_csv('SE_Asia_avg_coordinates.csv', index=False)
 all_data_df.to_csv('SE_Asia_coordinates.csv', index=False)
-stations_20plus_df.to_csv('SE_Asia_stations_with_20plus.csv', index=False) # Rename for the number of
+stations_104plus_samples_df.to_csv('SE_Asia_files_with_104plus_samples.csv', index=False)
 
 # Print the results
 pd.options.display.max_rows = 9999
-#print("Average Coordinates:")
-#print(avg_df)
-#print("\nStations with 20+ Data Points:")
-print(stations_20plus_df)
+print("\nFiles with more than 104 data points:")
+print(stations_104plus_samples_df)
+
 print("\nAll Coordinates Sample:")
-#print(all_data_df.head(999))
+print(all_data_df.head(99999))

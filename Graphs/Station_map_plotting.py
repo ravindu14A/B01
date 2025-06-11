@@ -4,63 +4,112 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import numpy as np
 from matplotlib_scalebar.scalebar import ScaleBar
+import matplotlib
+import os
+from matplotlib.lines import Line2D
+import geopandas as gpd
+
+# Use a non-interactive backend and default font
+matplotlib.use('Agg')
 
 # Load station coordinates
-station_coord_raw = pd.read_csv(r'C:\Users\nicov\PycharmProjects\B01\preprocessing\processed_data\SE_Asia\SE_Asia_stations_with_20plus.csv')
+station_coord_raw = pd.read_csv(r'C:\Users\nicov\PycharmProjects\B01\preprocessing\processed_data\SE_Asia\SE_Asia_avg_coordinates.csv')
 station_ident = station_coord_raw['File']
 station_latitude = station_coord_raw['Average Latitude'] * (180 / np.pi)
 station_longitude = station_coord_raw['Average Longitude'] * (180 / np.pi)
 
-# Combine station data into a list of tuples
 station_coord_proc = list(zip(station_ident, station_latitude, station_longitude))
 
-# Function to create a precise map with station locations
+# Major cities
+major_cities = [
+    ("Kuala Lumpur", 3.1390, 101.6869),
+    ("Jakarta", -6.2088, 106.8456),
+    ("Ho Chi Minh City", 10.7769, 106.7009),
+    ("Manila", 14.5995, 120.9842),
+    ("Hanoi", 21.0285, 105.8544),
+    ("Singapore", 1.3521, 103.8198),
+    ("Phnom Penh", 11.5564, 104.9282),
+]
+
+# Stations to highlight
+highlight_stations = {
+    "THAILAND": {"PHKT", "PHUK", "ARAU"},
+    "MALAYSIA": {"ARAU", "KUAL", "GETI", "USMP"}
+}
+highlight_set = set().union(*highlight_stations.values())
+
 def plot_stations(station_data):
-    fig, ax = plt.subplots(figsize=(10, 6), subplot_kw={'projection': ccrs.Mercator()}, dpi=1600)
+    fig, ax = plt.subplots(figsize=(24, 6), subplot_kw={'projection': ccrs.Mercator()}, dpi=1200)
 
-    # Add high-resolution map features
-    ax.add_feature(cfeature.LAND.with_scale('10m'), edgecolor='black', facecolor='lightgray')
-    ax.add_feature(cfeature.OCEAN.with_scale('10m'), facecolor='lightblue')
-    ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.8)
-    ax.add_feature(cfeature.BORDERS.with_scale('10m'), linestyle='--', edgecolor='black')
+    ax.add_feature(cfeature.LAND, edgecolor='black', facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='lightblue')
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
+    ax.add_feature(cfeature.BORDERS, linestyle='--', edgecolor='black')
 
-    # Plot station locations with labels
-    for name, lat, lon in station_data:
-        ax.plot(lon, lat, marker='^', color='red', markersize=5, transform=ccrs.PlateCarree(), label='Station')
-        ax.text(lon + 0.01, lat + 0.01, name, fontsize=4, transform=ccrs.PlateCarree())  # Add station name
+    # Extract station latitudes and longitudes
+    lats = [lat for _, lat, _ in station_data]
+    lons = [lon for _, _, lon in station_data]
 
-    # Add Phuket as a city
-    phuket_lat, phuket_lon = 7.8804, 98.3923
-    ax.plot(phuket_lon, phuket_lat, marker='o', color='blue', markersize=6, transform=ccrs.PlateCarree(),
-            label='Phuket')
-    ax.text(phuket_lon + 0.01, phuket_lat + 0.01, "Phuket", fontsize=9, fontweight='bold', color='blue',
-            transform=ccrs.PlateCarree())
+    # Set the extent based on stations
+    lon_min, lon_max = min(lons) - 2, max(lons) + 2
+    lat_min, lat_max = min(lats) - 2, max(lats) + 2
+    ax.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
 
-    # Add refined gridlines
+    # Plot tectonic plate boundaries
+    plate_path = r"C:\Users\nicov\Downloads\PB2002_boundaries.json"
+    plate_boundaries = gpd.read_file(plate_path)
+    plate_boundaries.plot(ax=ax, edgecolor='orangered', linewidth=0.8,
+                          facecolor='none', transform=ccrs.PlateCarree(), zorder=3)
+
+    # Plot stations
+    for ident, lat, lon in station_data:
+        if ident in highlight_set:
+            ax.plot(lon, lat, marker='d', color='yellow', markersize=4, transform=ccrs.PlateCarree(), zorder=5)
+        else:
+            ax.plot(lon, lat, marker='^', color='purple', markersize=4, transform=ccrs.PlateCarree(), zorder=4)
+
+    # Plot major cities
+    for city, lat, lon in major_cities:
+        if (lon_min < lon < lon_max) and (lat_min < lat < lat_max):
+            ax.plot(lon, lat, marker='o', color='black', markersize=5, transform=ccrs.PlateCarree())
+            ax.text(lon + 0.2, lat + 0.2, city,
+                    fontsize=7, fontweight='semibold', color='darkslategray',
+                    transform=ccrs.PlateCarree(), zorder=6)
+
+    # Add gridlines
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=0.3, color='gray', alpha=0.5, linestyle='--')
     gl.top_labels = False
     gl.right_labels = False
-    gl.xlabel_style = {'size': 10, 'color': 'black'}
-    gl.ylabel_style = {'size': 10, 'color': 'black'}
+    gl.xlabel_style = {'size': 8, 'color': 'black'}
+    gl.ylabel_style = {'size': 8, 'color': 'black'}
 
-    # Set precise plot extent based on station locations
-    lon_min, lon_max = min(station_longitude) - 1, max(station_longitude) + 1
-    lat_min, lat_max = min(station_latitude) - 1, max(station_latitude) + 1
-    ax.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+    # Add legend
+    station_marker = Line2D([0], [0], marker='^', color='purple', linestyle='None', markersize=6, label='Ground Station')
+    highlight_marker = Line2D([0], [0], marker='d', color='yellow', linestyle='None', markersize=8, label='Stations selected for this study')
+    boundary_marker = Line2D([0], [0], color='orangered', linewidth=1, linestyle='-', label='Tectonic Plate Boundaries')
+    ax.legend(handles=[station_marker, highlight_marker, boundary_marker], loc='upper right', fontsize=8)
 
-    ax.set_title("Data Gathering Stations with 20+ datapoints in SE Asia (1999-2025)", fontsize=14, pad=20)
-
-    # Add the scale bar (1 degree ≈ 111 km at the equator)
-    ax.add_feature(cfeature.LAND.with_scale('10m'), edgecolor='black', facecolor='lightgray')
-    scalebar = ScaleBar(1, location='lower right', length_fraction=0.1)  # Adjust the length_fraction to your liking
+    # Add scale bar
+    scalebar = ScaleBar(
+        dx=1,
+        units='m',
+        scale_formatter=lambda value, unit: f'{value/1000:.0f} km',
+        location='lower left',
+        length_fraction=0.2,
+        scale_loc='bottom',
+        border_pad=0.5,
+        fixed_value=500000,
+        fixed_units='m'
+    )
     ax.add_artist(scalebar)
 
-    # Ensure the figure background is visible
     fig.patch.set_facecolor('white')
-
     return fig, ax
 
-# Main script
 if __name__ == '__main__':
-    combined_fig, combined_ax = plot_stations(station_coord_proc)
-    plt.show()
+    fig, ax = plot_stations(station_coord_proc)
+
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+    save_path = os.path.join(downloads_path, "all_datapoints_station_map_highlighted.png")
+    fig.savefig(save_path, dpi=1200, bbox_inches='tight')
+    print(f"Saved to: {save_path}")

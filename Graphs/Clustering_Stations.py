@@ -8,6 +8,7 @@ from sklearn.cluster import DBSCAN
 from matplotlib.patches import Circle
 import os
 from datetime import datetime
+from collections import defaultdict
 
 
 def load_and_preprocess(filepath):
@@ -26,13 +27,47 @@ def calculate_distances(df):
             for j in range(i + 1, len(coords))]
 
 
+def clean_cluster_results(clustered_df):
+    """Remove duplicate stations from cluster results"""
+    # Group by cluster and collect unique stations
+    cluster_dict = defaultdict(list)
+    for _, row in clustered_df.iterrows():
+        if row['Cluster'] != -1:  # Skip noise points
+            cluster_dict[row['Cluster']].append(row['File'])
+
+    # Remove duplicates within each cluster
+    clean_clusters = []
+    for cluster, stations in cluster_dict.items():
+        unique_stations = list(set(stations))  # Remove duplicates
+        clean_clusters.append({
+            'Cluster': cluster,
+            'NumStations': len(unique_stations),
+            'StationFile': unique_stations
+        })
+
+    return pd.DataFrame(clean_clusters)
+
+
 def perform_clustering(df, eps_km):
-    """Perform DBSCAN clustering"""
+    """Perform DBSCAN clustering with duplicate prevention"""
     eps_rad = eps_km / 6371  # Earth's radius in km
-    coords_rad = df[['Average Latitude', 'Average Longitude']].values
+
+    # Get unique stations only
+    unique_df = df.drop_duplicates(subset=['File'])
+    coords_rad = unique_df[['Average Latitude', 'Average Longitude']].values
+
     clustering = DBSCAN(eps=eps_rad, min_samples=2, metric='haversine').fit(coords_rad)
-    df['Cluster'] = clustering.labels_
-    return df, clustering
+    unique_df['Cluster'] = clustering.labels_
+
+    # Merge back with original dataframe while preserving cluster assignments
+    clustered_df = pd.merge(
+        df[['File', 'Latitude_degrees', 'Longitude_degrees']],  # Original station list with coordinates
+        unique_df[['File', 'Cluster']],  # Cluster assignments
+        on='File',
+        how='left'
+    ).fillna(-1)  # -1 for noise points
+
+    return clustered_df, clustering
 
 
 def plot_clusters(df, eps_km, output_dir):
@@ -106,17 +141,13 @@ def plot_clusters(df, eps_km, output_dir):
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', framealpha=0.9)
 
         plt.tight_layout()
-
-        # Save the figure with high quality settings (removed quality parameter for PNG)
         output_path = os.path.join(output_dir, f'clusters_eps_{eps_km}km.png')
         plt.savefig(output_path, dpi=1200, bbox_inches='tight')
-        print(f"Saved high-quality plot for ε={eps_km} km to {output_path}")
-
-        # Display the plot
+        print(f"Saved plot to {output_path}")
         plt.show()
 
     except Exception as e:
-        print(f"Error generating plot for ε={eps_km} km: {str(e)}")
+        print(f"Error generating plot: {str(e)}")
     finally:
         plt.close(fig)
 
@@ -138,22 +169,31 @@ def main():
     print(f"Median distance: {np.median(distances):.2f} km")
     print(f"Suggested EPS range: {np.median(distances) * 0.2:.1f}-{np.median(distances) * 0.6:.1f} km")
 
-    # Loop through EPS values from 20 to 100 km in steps of 10 km
-    for eps_km in range(20, 101, 10):
+    # Loop through EPS values from 100 to 120 km in steps of 10 km
+    for eps_km in range(100, 121, 10):
         print(f"\nProcessing ε={eps_km} km")
 
-        # Perform clustering
-        clustered_df, clustering = perform_clustering(df.copy(), eps_km)
+        # Perform clustering with duplicate prevention
+        clustered_df, clustering = perform_clustering(df, eps_km)
+        clean_summary = clean_cluster_results(clustered_df)
 
         # Print cluster info
-        n_clusters = len(set(clustering.labels_)) - (1 if -1 in clustering.labels_ else 0)
-        n_single = sum(clustering.labels_ == -1)
+        n_clusters = len(clean_summary)
+        n_single = sum(clustered_df['Cluster'] == -1)
         print(f"Found {n_clusters} clusters and {n_single} single stations")
 
-        # Generate, save, and display plot
+        # Print and save cleaned cluster info
+        for _, row in clean_summary.iterrows():
+            print(f"Cluster {row['Cluster']}: {row['NumStations']} stations -> {row['StationFile']}")
+
+        summary_csv = os.path.join(output_dir, f'clean_cluster_summary_eps_{eps_km}km.csv')
+        clean_summary.to_csv(summary_csv, index=False)
+        print(f"Saved clean summary to {summary_csv}")
+
+        # Generate and save plot
         plot_clusters(clustered_df, eps_km, output_dir)
 
-        # Save clustered data
+        # Save full clustered data
         output_csv = os.path.join(output_dir, f'clusters_eps_{eps_km}km.csv')
         clustered_df.to_csv(output_csv, index=False)
         print(f"Saved cluster data to {output_csv}")
