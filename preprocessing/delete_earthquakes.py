@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression
 country = "malaysia"
 
 
-directory = f"./data/partially_processed_steps/{country}/PCA"
+directory = f"../data/partially_processed_steps/{country}/pca"
 
 directory_out = f"../data/processed/{country}"
 

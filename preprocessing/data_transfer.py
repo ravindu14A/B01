@@ -1,12 +1,10 @@
 import os
 from collections import defaultdict
-from datetime import datetime
 import re
 import pickle
 import pandas as pd
 import numpy as np
 import preprocessing.coordinate as geo
-import matplotlib.pyplot as plt
 
 
 # Load data
@@ -176,13 +174,13 @@ class StationDataProcessor:
 
 
 object = StationDataProcessor(f"../data/raw/{country}",
-                              f"./data/partially_processed_steps/{country}/raw_pickle")
+                              f"../data/partially_processed_steps/{country}/raw_pickle")
 
 object.process_files()
 
 ###Filtering
-directory = f"./data/partially_processed_steps/{country}/raw_pickle"
-directory_out = f"./data/partially_processed_steps/{country}/filtered"
+directory = f"../data/partially_processed_steps/{country}/raw_pickle"
+directory_out = f"../data/partially_processed_steps/{country}/filtered"
 
 
 threshold= 300/7

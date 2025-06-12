@@ -61,12 +61,12 @@ in the `data/processed/` directory, already include all preprocessing.
     python preprocessing/coordinate.py       # Transform coordinates to NEU
     python preprocessing/delete_earthquakes.py  # Remove discontinuities
     python preprocessing/plate_motion.py     # Remove absolute plate motion
-    python preprocessing/pca.py              # Apply PCA transformation
+    python preprocessing/pca.py              # Apply pca transformation
 ```
 
 2. **Generate Predictions**:
 ```bash
-    python predictions/main.py
+    python results/main.py
 ```
 
 ## Methodology
@@ -113,7 +113,7 @@ The analysis focuses on:
 ### Basic Prediction Run
 
 ```python
-from predictions.predictions import monte
+from results.predictions import monte
 
 # Set parameters
 country = "thailand"

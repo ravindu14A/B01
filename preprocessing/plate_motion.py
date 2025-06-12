@@ -70,10 +70,10 @@ def plate_motion_api(lat, lon, h):  # this is not too slow for only all stations
 
 
 
-directory = f"./Partially_Processed_Steps/{country}/Filtered_cm"
-directory1 = f"./Partially_Processed_Steps/{country}/Raw_pickle"
+directory = f"../data/partially_processed_steps/{country}/filtered_cm"
+directory1 = f"../data/partially_processed_steps/{country}/raw_pickle"
 
-directory_out = f"./Partially_Processed_Steps/{country}/Filtered_cm_normalised"
+directory_out = f"../data/partially_processed_steps/{country}/filtered_cm_normalised"
 
 for filename in os.listdir(directory_out):
     file_path = os.path.join(directory_out, filename)

@@ -17,9 +17,9 @@ def get_displacement_mm(lat0, lon0, lat, lon):
     d_east = dist_m * np.sin(az_rad) *100 # cm
     return d_north, d_east
 
-directory = f"./data/partially_processed_steps/{country}/filtered"
+directory = f"../data/partially_processed_steps/{country}/filtered"
 
-directory_out = f"./data/partially_processed_steps/{country}/filtered_cm"
+directory_out = f"../data/partially_processed_steps/{country}/filtered_cm"
 
 for filename in os.listdir(directory_out):
     file_path = os.path.join(directory_out, filename)

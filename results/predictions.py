@@ -12,18 +12,18 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
     confidence = norm.ppf(1 - alpha / 2)
     print(confidence)
 
-    PCA = pd.read_pickle(f"./Processed_Data_{country}/PCA.pkl")
+    PCA = pd.read_pickle(f"../data/pca/{country}.pkl")
     t_fit = np.arange(50, int(years_predict * 365.25) , 7)
     v = PCA[station]
 
-    data_df = pd.read_pickle(f"./Processed_Data_{country}/{station}.pkl")
+    data_df = pd.read_pickle(f"../data/processed/{country}/{station}.pkl")
     data_df = data_df.drop(columns=['long'])
     data_df = data_df.rename(columns={'lat': 'pos'})
     # Convert 'date' column to datetime
     data_df['date'] = pd.to_datetime(data_df['date'])
 
     # Define reference date
-    quake_date = pd.to_datetime('2004-11-26')
+    quake_date = pd.to_datetime('2004-11-15')
 
     # Find the closest date in the column
     data_df['date'] = pd.to_datetime(data_df['date']).dt.normalize()
@@ -40,7 +40,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
     data_df['days'] = (data_df['date'] - quake_date).dt.days
     origianl_df = data_df.copy()
 
-    cov_df = pd.read_pickle(f"../Preprocessing_Data_and_Filtration/Partially_Processed_Steps/{country}/Filtered_cm_normalised/{station}.pkl")
+    cov_df = pd.read_pickle(f"../data/partially_processed_steps/{country}/filtered_cm_normalised/{station}.pkl")
     cov_df["cov_2D"] = cov_df["covariance matrix"].apply(lambda x: x[:2, :2])
 
     cov_df["var"] = cov_df["cov_2D"].apply(lambda x: v.T @ x @ v)
@@ -123,7 +123,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
     high_fit = func(t_fit, *coefs[high_closest_index],slopes[high_closest_index])
 
 
-    # for i in range(N):  # or however many bad predictions
+    # for i in range(N):  # or however many bad results
     #     y_fit = func(t_fit, *coefs[i], slopes[i])
     #     plt.plot(t_fit / 365.25, y_fit, label=f"sample {i}")
     # plt.axhline(0, linestyle='--', color='gray')

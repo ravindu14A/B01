@@ -5,10 +5,10 @@ import pandas as pd
 # import main as mn
 
 # Load data
-country = "malaysia"
+country = "thailand"
 
-directory = f"./Partially_Processed_Steps/{country}/Filtered_cm_normalised"
-directory_out = f"./Partially_Processed_Steps/{country}/PCA"
+directory = f"../data/partially_processed_steps/{country}/filtered_cm_normalised"
+directory_out = f"../data/partially_processed_steps/{country}/pca"
 start_date = pd.to_datetime("2004-12-30")
 end_date = pd.to_datetime("2010-12-30")
 
@@ -58,5 +58,5 @@ for filename in os.listdir(directory):
         out_path = os.path.join(directory_out, filename)
         out_df.to_pickle(out_path)
 
-with open(f"../predictions/Processed_Data_{country}/PCA.pkl", 'wb') as f:
+with open(f"../data/pca/{country}.pkl", 'wb') as f:
     pickle.dump(trans, f)
