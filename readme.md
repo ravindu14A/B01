@@ -1,17 +1,18 @@
 # Predicting the Next Magnitude 9+ Earthquake at the Sumatra-Andaman Subduction Interface
 
 
-This project analyzes GNSS time-series data from Malaysian and Thai stations to forecast when the next magnitude 9+ earthquake could occur at the Sumatra-Andaman subduction interface. 
+This project analyzes GNSS time-series data from Malaysian and Thai stations to forecast the next magnitude 9+ 
+earthquake occurrence at the Sumatra-Andaman subduction interface. 
 
 ## Key Findings
 
 - **Earthquake Prediction**: Next large earthquake predicted between **2208-2228** (95% confidence interval)
 - **Station-Specific Predictions**:
-  - ARAU (Malaysia): 2331 ± 24.2 years
-  - GETI (Malaysia): 2190 ± 15.2 years
-  - KUAL (Malaysia): 2382 ± 53.6 years
-  - USMP (Malaysia): 2182 ± 6.6 years
-  - PHUK (Thailand): 2290 ± 10.1 years
+  - ARAU (Malaysia): 2257 ± 21.7 years
+  - KUAL (Malaysia): 2306 ± 81.2 years
+  - USMP (Malaysia): 2228 ± 16.9 years
+  - BEHR (Malaysia): 2258 ± 81.9 years
+  - PHUK (Thailand): 2241 ± 20.1 years
 
 ## Project Structure
 
@@ -22,10 +23,10 @@ B01/
 │   ├── processed/              # Cleaned and processed data
 │   └── partially_processed_steps/ # Data at different stages of preprocessing 
 ├── preprocessing/
-│   ├── convert.py              # Data format conversion
+│   ├── convert.py              # Data conversion
 │   ├── coordinate.py           # Coordinate system transformations
-│   ├── data_transfer.py        # Data handling utilities
-│   ├── delete_earthquakes.py   # Earthquake discontinuity removal
+│   ├── data_transfer.py        # Organizing, converting and filtering station data
+│   ├── delete_earthquakes.py   # Earthquake discontinuities removal
 │   ├── pca.py                  # Principal Component Analysis
 │   └── plate_motion.py         # Plate motion calculations
 ├── predictions/
@@ -72,9 +73,9 @@ in the `data/processed/` directory, already include all preprocessing.
 
 ### Data Processing Pipeline
 
-1. **Coordinate Transformation**: Convert ECEF coordinates to North-East-Up (NEU) local frame
+1. **Coordinate Transformation**: Convert coordinates to North-East-Up (NEU)
 2. **Discontinuity Detection**: Identify and remove earthquake-caused jumps from the time series
-3. **Plate Motion Removal**: Subtract absolute Sunda plate movement
+3. **Plate Motion Removal**: Subtract absolute plate movement
 4. **Principal Component Analysis**: Reduce dimensionality and focus on main deformation direction
 5. **Regression Modeling**: Fit post-seismic deformation using exponential decay model
 
@@ -88,9 +89,6 @@ f(t) = vt + c₁e^(-u₁t) + c₂e^(-u₂t) + d
 
 Where:
 - `v`: velocity of station before earthquake
-- `c₁, c₂`: exponential decay coefficients
-- `u₁, u₂`: decay rates
-- `d`: constant offset
 
 ### Error Estimation
 
@@ -98,19 +96,11 @@ Monte Carlo simulation with 1000 iterations to calculate prediction uncertainty:
 - Generate synthetic datasets within measurement uncertainty (From the provided covariance)
 - Determine 95% confidence intervals
 
-## Key Features
-
-- **Automated Data Processing**: Complete pipeline from raw GNSS data to predictions
-- **Error Handling**: Uncertainty quantification
-- **Visualization Tools**: Generate prediction plots and uncertainty bounds
-
 ## Study Area
 
 The analysis focuses on:
-- **Primary Region**: Sumatra-Andaman subduction interface
 - **Countries**: Thailand and Malaysia
 - **Stations**: 7 long-duration GNSS stations (1999-2024)
-- **Key Cities**: Bangkok, Phuket, Kuala Lumpur, Sabah
 
 ## Limitations & Considerations
 
@@ -124,7 +114,6 @@ The analysis focuses on:
 
 ```python
 from predictions.predictions import monte
-from preprocessing.coordinate import coordinate_transform
 
 # Set parameters
 country = "thailand"
@@ -136,12 +125,6 @@ confidence_level = 95
 # Run prediction
 monte(country, station, N, years_predict, confidence_level, offset=60, pred_pos=4)
 ```
-
-## Scientific Background
-
-This research addresses the challenge of earthquake prediction in one of the world's most seismically active regions. The 2004 Sumatra-Andaman earthquake (Mw 9.1) killed over 225,000 people, highlighting the critical need for improved forecasting methods.
-
-The approach leverages the concept of seismic cycles - repeating patterns of stress accumulation and release along tectonic faults. By analyzing ground deformation patterns captured by GNSS stations, the model attempts to identify when conditions similar to the 2004 earthquake might recur.
 
 ## Contributing
 
