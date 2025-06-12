@@ -100,7 +100,7 @@ Monte Carlo simulation with 1000 iterations to calculate prediction uncertainty:
 
 The analysis focuses on:
 - **Countries**: Thailand and Malaysia
-- **Stations**: 7 long-duration GNSS stations (1999-2024)
+- **Stations**: 5 long-duration GNSS stations (1999-2024)
 
 ## Limitations & Considerations
 
