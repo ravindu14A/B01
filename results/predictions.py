@@ -25,7 +25,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
     data_df['date'] = pd.to_datetime(data_df['date'])
 
     # Define reference date
-    quake_date = pd.to_datetime('2004-11-15')
+    quake_date = pd.to_datetime('2004-11-30')
 
     # Find the closest date in the column
     data_df['date'] = pd.to_datetime(data_df['date']).dt.normalize()

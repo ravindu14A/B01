@@ -3,7 +3,7 @@ from results.predictions import monte
 
 ####----Settings----####
 country = "Thailand"
-station = "PHUK"
+station = "PHKT"
 
 N= 50 #Number of samples in Monte Carlo
 years_predict = 450 #Window of results - around 500 first then adjust for better visual
