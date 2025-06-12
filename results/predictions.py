@@ -5,6 +5,8 @@ from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit, bisect
 import pickle
 from scipy.stats import norm
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 def monte(country, station, N, years_predict, confidence_level, offset, pred_pos):
     ####----Processing----####
@@ -86,7 +88,9 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
         def model_func(t, A, B, c1, c2, d):
             return A * np.exp(-c1 * t) + B * np.exp(-c2 * t) + d + slope_per_day * (t - 365.25* offset)
 
-        popt, pcov = curve_fit(model_func, t_data, y_data, maxfev = 10000)
+        inital = [ 2.55295460e+01,  4.01106511e+01,  1.58786793e-02,  3.02663867e-04,
+ -4.66967803e+01]
+        popt, pcov = curve_fit(model_func, t_data, y_data, maxfev = 10000, p0 = inital)
 
         #####---- Prediction ----#####
         y_fit = model_func(t_fit, *popt)
@@ -133,7 +137,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
 
 
     ####-----Plotting-----#####
-    label_date = quake_date + pd.to_timedelta(int(mean*365.25), unit='D')
+    label_date = 2005 + int(mean)
 
     plt.figure(figsize=(8,6))
     plt.axhline(y=0, color = "black", linestyle = "--")
@@ -162,7 +166,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
 
     plt.text(
         mean, pred_pos,  # x and y coordinates
-        f"Mean Prediction: {label_date.strftime('%Y-%m-%d')}",
+        f"Mean Prediction: {label_date}",
         ha='center', va='bottom',
         fontsize=10,
         color='blue',
