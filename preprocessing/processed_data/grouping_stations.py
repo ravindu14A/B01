@@ -6,7 +6,7 @@ from geopy.distance import great_circle
 # Read data (coordinates are in radians)
 station_coord_raw = pd.read_csv(r'C:\Users\nicov\PycharmProjects\B01\preprocessing\processed_data\SE_Asia\SE_Asia_stations_with_20plus.csv')
 
-# Convert coordinates from radians to degrees
+# from radians to degrees
 station_coord_raw['Latitude_degrees'] = np.degrees(station_coord_raw['Average Latitude'])
 station_coord_raw['Longitude_degrees'] = np.degrees(station_coord_raw['Average Longitude'])
 
