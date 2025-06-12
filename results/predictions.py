@@ -8,7 +8,7 @@ from scipy.stats import norm
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-def monte(country, station, N, years_predict, confidence_level, offset, pred_pos):
+def monte(country, station, N, years_predict, confidence_level, offset, pred_pos, unc_pos):
     ####----Processing----####
     alpha = 1 - confidence_level/100
     confidence = norm.ppf(1 - alpha / 2)
@@ -139,7 +139,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
     ####-----Plotting-----#####
     label_date = 2005 + int(mean)
 
-    plt.figure(figsize=(8,6))
+    plt.figure(figsize=(6,4))
     plt.axhline(y=0, color = "black", linestyle = "--")
     plt.plot(origianl_df["days"]/365.25, origianl_df["pos"], color = "green", label = "Original Data")
 
@@ -174,7 +174,7 @@ def monte(country, station, N, years_predict, confidence_level, offset, pred_pos
     )
 
     plt.text(
-        mean, pred_pos+8,  # x and y coordinates
+        mean, pred_pos+unc_pos,  # x and y coordinates
         f"Uncertainty: +/- {round(confidence_interval, 1)}",
         ha='center', va='bottom',
         fontsize=8,
